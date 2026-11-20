@@ -2,80 +2,246 @@
 
 ## Overview
 
-The backend exposes REST API endpoints for the Alex Portfolio frontend.
+The Alex Portfolio API is built with FastAPI.
 
 Base URL during local development:
 
-```text
-http://127.0.0.1:8000/api/v1
-```
+`http://localhost:8000`
+
+API prefix:
+
+`/api/v1`
+
+All endpoints are registered in `app/main.py`.
 
 ## API Documentation Interface
 
-When the FastAPI application is running, use:
+Interactive documentation:
 
-- Swagger UI: `/docs`
-- ReDoc: `/redoc`
+- Swagger UI: http://localhost:8000/docs
+- ReDoc: http://localhost:8000/redoc
+- OpenAPI JSON: http://localhost:8000/openapi.json
 
-These interfaces display the endpoints registered in the running application.
+## Authentication Requirements
 
-## Planned API Modules
+Public endpoints do not require an access token.
 
-| Module | Purpose | Access |
+Administrator endpoints require:
+
+`Authorization: Bearer <access_token>`
+
+The backend verifies the token using Supabase Auth and checks the trusted `app_metadata.role` for the `admin` value.
+
+Use the Swagger **Authorize** control to provide an access token when testing protected endpoints.
+
+## 1. Health
+
+| Method | Endpoint | Access | Description |
+|---|---|---|---|
+| GET | `/` | Public | API information |
+| GET | `/health` | Public | Application health check |
+
+## 2. Authentication
+
+Prefix: `/api/v1/auth`
+
+| Method | Endpoint | Access | Description |
+|---|---|---|---|
+| POST | `/login` | Public | Authenticate an administrator |
+| POST | `/refresh` | Public | Refresh an authentication session |
+| GET | `/me` | Authenticated | Retrieve the current user |
+| POST | `/logout` | Authenticated | Sign out the current session |
+
+### Login request
+
+```json
+{
+  "email": "admin@example.com",
+  "password": "your-password"
+}
+```
+
+The login operation checks the authenticated user's trusted admin role before returning the session.
+
+### Refresh request
+
+```json
+{
+  "refresh_token": "your-refresh-token"
+}
+```
+
+### Current user
+
+Requires a valid Bearer access token.
+
+### Logout
+
+Requires the current session's Bearer access token.
+
+## 3. Projects
+
+Prefix: `/api/v1/projects`
+
+| Method | Endpoint | Access | Description |
+|---|---|---|---|
+| GET | `/` | Public | Retrieve all projects |
+| GET | `/{project_id}` | Public | Retrieve a project |
+| POST | `/` | Admin | Create a project |
+| PATCH | `/{project_id}` | Admin | Update a project |
+| DELETE | `/{project_id}` | Admin | Delete a project |
+
+### Create project request
+
+```json
+{
+  "title": "Portfolio API Test Project",
+  "description": "A sample portfolio project.",
+  "image_url": null,
+  "live_url": null,
+  "github_url": "https://github.com/alexgustilo",
+  "technologies": [
+    "Next.js",
+    "FastAPI",
+    "Supabase"
+  ],
+  "featured": false,
+  "display_order": 1
+}
+```
+
+Project identifiers are UUID values.
+
+## 4. Skills
+
+Prefix: `/api/v1/skills`
+
+| Method | Endpoint | Access | Description |
+|---|---|---|---|
+| GET | `/` | Public | Retrieve all skills |
+| GET | `/{skill_id}` | Public | Retrieve one skill |
+| POST | `/` | Admin | Create a skill |
+| PATCH | `/{skill_id}` | Admin | Update a skill |
+| DELETE | `/{skill_id}` | Admin | Delete a skill |
+
+### Create skill request
+
+```json
+{
+  "name": "Python",
+  "category": "Backend",
+  "proficiency": 75,
+  "icon": null,
+  "display_order": 1
+}
+```
+
+Proficiency must be between 0 and 100.
+
+## 5. Certificates
+
+Prefix: `/api/v1/certificates`
+
+| Method | Endpoint | Access | Description |
+|---|---|---|---|
+| GET | `/` | Public | Retrieve all certificates |
+| GET | `/{certificate_id}` | Public | Retrieve a certificate |
+| POST | `/` | Admin | Create a certificate |
+| PATCH | `/{certificate_id}` | Admin | Update a certificate |
+| DELETE | `/{certificate_id}` | Admin | Delete a certificate |
+
+### Create certificate request
+
+```json
+{
+  "title": "Python Bootcamp",
+  "issuer": "Example Organization",
+  "issue_date": "2026-01-01",
+  "credential_url": null,
+  "image_url": null,
+  "description": "Certificate description.",
+  "display_order": 1
+}
+```
+
+The issue date uses the `YYYY-MM-DD` format.
+
+## 6. Contact
+
+Prefix: `/api/v1/contact`
+
+| Method | Endpoint | Access | Description |
+|---|---|---|---|
+| POST | `/` | Public | Submit a contact message |
+
+### Contact request
+
+```json
+{
+  "name": "Visitor Name",
+  "email": "visitor@example.com",
+  "subject": "Project inquiry",
+  "message": "Hello, I would like to discuss a project."
+}
+```
+
+The API saves the message in `contact_messages`.
+
+If SMTP is configured, the backend attempts to send an email notification. The response indicates whether that notification was sent.
+
+## 7. Messages
+
+Prefix: `/api/v1/messages`
+
+All message management operations require administrator authorization.
+
+| Method | Endpoint | Description |
 |---|---|---|
-| Authentication | Admin login and current-user information | Public login / authenticated user |
-| Projects | Retrieve and manage portfolio projects | Public read / Admin write |
-| Skills | Retrieve and manage technical skills | Public read / Admin write |
-| Certificates | Retrieve and manage certificates | Public read / Admin write |
-| Contact | Accept visitor messages | Public submission |
-| Messages | Review and manage submitted messages | Admin only |
-| Dashboard | Portfolio administration statistics | Admin only |
-| Profile | Manage Admin profile information | Admin only |
+| GET | `/` | Retrieve messages |
+| GET | `/{message_id}` | Retrieve a specific message |
+| PATCH | `/{message_id}` | Update message status |
+| DELETE | `/{message_id}` | Delete a message |
 
-## Planned Endpoint Design
+Optional filter:
 
-### Authentication
+`GET /api/v1/messages/?status=unread`
 
-```text
-POST /auth/login
-GET  /auth/me
-POST /auth/logout
+Allowed statuses:
+
+- `unread`
+- `read`
+- `replied`
+- `archived`
+
+### Update message request
+
+```json
+{
+  "status": "read"
+}
 ```
 
-### Public Portfolio
+## 8. Profile
 
-```text
-GET  /projects
-GET  /skills
-GET  /certificates
-POST /contact
+Prefix: `/api/v1/profile`
+
+Administrator authorization is required.
+
+| Method | Endpoint | Description |
+|---|---|---|
+| GET | `/me` | Retrieve the current administrator profile |
+| PATCH | `/me` | Update the current administrator profile |
+
+### Update profile request
+
+```json
+{
+  "full_name": "Alex Gustilo",
+  "avatar_url": null
+}
 ```
 
-### Admin Management
-
-```text
-GET    /admin/dashboard
-GET    /admin/projects
-POST   /admin/projects
-PATCH  /admin/projects/{id}
-DELETE /admin/projects/{id}
-
-GET    /admin/skills
-POST   /admin/skills
-PATCH  /admin/skills/{id}
-DELETE /admin/skills/{id}
-
-GET    /admin/certificates
-POST   /admin/certificates
-PATCH  /admin/certificates/{id}
-DELETE /admin/certificates/{id}
-
-GET    /admin/messages
-GET    /admin/messages/{id}
-PATCH  /admin/messages/{id}
-```
-
-These are planned endpoint paths, not a claim that all endpoints have already been implemented.
+The profile ID is associated with the authenticated Supabase user.
 
 ## HTTP Status Codes
 
@@ -83,20 +249,18 @@ These are planned endpoint paths, not a claim that all endpoints have already be
 |---|---|
 | 200 | Request successful |
 | 201 | Resource created |
-| 204 | Request successful with no response body |
+| 204 | Resource deleted successfully |
 | 400 | Invalid request |
 | 401 | Authentication required or invalid |
-| 403 | Insufficient permissions |
+| 403 | Administrator access required |
 | 404 | Resource not found |
 | 422 | Request validation failed |
-| 500 | Internal server error |
+| 500 | Unexpected server error |
+| 503 | Required backend service configuration unavailable |
 
-## Authentication
+## Notes
 
-Protected endpoints will use a Supabase access token in the Authorization header:
-
-```http
-Authorization: Bearer YOUR_ACCESS_TOKEN
-```
-
-FastAPI will verify the token and enforce the required permissions.
+- Public portfolio reads use the regular Supabase client.
+- Administrator writes use the privileged backend client after admin authorization.
+- A successful application import does not prove that database operations work.
+- All CRUD operations still require end-to-end testing against the configured Supabase project.

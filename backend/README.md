@@ -1,8 +1,10 @@
 # Alex Portfolio Backend
 
-The backend service for the Alex Portfolio application.
+The backend application for Alex Portfolio, a full-stack personal developer portfolio.
 
-Built with FastAPI and Supabase, this project provides the foundation for portfolio data management, authentication, and communication between the Next.js frontend and the database.
+Built with FastAPI and Supabase, this application provides API endpoints for portfolio content, administrator authentication, contact submissions, and profile management.
+
+**Development status:** Core API implementation is in place. Database integration, authentication flows, and production behavior still require end-to-end verification.
 
 ## Technology Stack
 
@@ -10,10 +12,31 @@ Built with FastAPI and Supabase, this project provides the foundation for portfo
 |---|---|
 | Python | Backend programming language |
 | FastAPI | REST API framework |
-| Uvicorn | ASGI development server |
-| Supabase | PostgreSQL database and authentication |
-| Pydantic | Data validation and settings |
-| PyJWT | JWT utilities |
+| Uvicorn | ASGI application server |
+| Pydantic | Request and response validation |
+| Pydantic Settings | Environment configuration |
+| Supabase PostgreSQL | Database |
+| Supabase Auth | Authentication |
+| Supabase Storage | Planned file storage integration |
+
+## Features
+
+### Public API
+- Retrieve portfolio projects, skills, and certificates.
+- Submit contact form messages.
+- API health checks.
+
+### Administrator API
+- Admin login and token refresh.
+- Current authenticated user.
+- Project management (Create, Read, Update, Delete).
+- Skill management (Create, Read, Update, Delete).
+- Certificate management (Create, Read, Update, Delete).
+- Contact message management.
+- Administrator profile management.
+
+### Email Notifications
+Optional SMTP notification when a visitor submits a contact message.
 
 ## Project Structure
 
@@ -27,12 +50,37 @@ backend/
 │   ├── dependencies/
 │   │   └── auth.py
 │   ├── routes/
+│   │   ├── auth.py
+│   │   ├── certificates.py
+│   │   ├── contact.py
+│   │   ├── messages.py
+│   │   ├── profile.py
+│   │   ├── projects.py
+│   │   └── skills.py
 │   ├── schemas/
+│   │   ├── auth.py
+│   │   ├── certificates.py
+│   │   ├── contact.py
+│   │   ├── messages.py
+│   │   ├── profile.py
+│   │   ├── projects.py
+│   │   └── skills.py
 │   ├── services/
+│   │   ├── auth_service.py
+│   │   ├── certificate_service.py
+│   │   ├── contact_service.py
+│   │   ├── email_service.py
+│   │   ├── message_service.py
+│   │   ├── profile_service.py
+│   │   ├── project_service.py
+│   │   └── skill_service.py
 │   └── main.py
 ├── docs/
+│   ├── API.md
+│   ├── ARCHITECTURE.md
+│   ├── DEVELOPMENT.md
+│   └── SECURITY.md
 ├── tests/
-├── .env
 ├── .env.example
 ├── .gitignore
 ├── requirements.txt
@@ -41,133 +89,120 @@ backend/
 
 ## Getting Started
 
-### 1. Requirements
-
-- Python 3.10 or newer
+### Requirements
+- Python 3
 - pip
-- A Supabase project
+- Supabase project
+- Git
 
-### 2. Create a virtual environment
+### 1. Navigate to the Backend
+
+```bash
+cd backend
+```
+
+### 2. Create a Virtual Environment
 
 ```bash
 python3 -m venv venv
-```
-
-Activate it:
-
-Linux / macOS:
-
-```bash
 source venv/bin/activate
 ```
 
-Windows:
-
-```powershell
-venv\Scripts\activate
-```
-
-### 3. Install dependencies
+### 3. Install Dependencies
 
 ```bash
 pip install -r requirements.txt
 ```
 
-### 4. Configure environment variables
+### 4. Configure Environment Variables
 
-Copy the example environment file:
+Create your local environment file:
 
 ```bash
 cp .env.example .env
 ```
 
-Configure the following values in `.env`:
+Configure the required Supabase values:
 
 ```env
-APP_NAME=Alex Portfolio API
+APP_NAME="Alex Portfolio API"
 APP_VERSION=1.0.0
 ENVIRONMENT=development
 API_PREFIX=/api/v1
 
 CORS_ORIGINS=http://localhost:3000
 
-SUPABASE_URL=your_supabase_project_url
-SUPABASE_ANON_KEY=your_supabase_publishable_or_anon_key
-SUPABASE_SERVICE_ROLE_KEY=your_server_side_secret_key
+SUPABASE_URL=https://your-project.supabase.co
+SUPABASE_ANON_KEY=your_publishable_key
+SUPABASE_SERVICE_ROLE_KEY=your_server_secret_key
 ```
 
-Use the Supabase project URL and publishable key (or legacy anon key) from your project settings.
+The privileged Supabase key is required for the current administrator database operations.
 
-Keep secret keys private. Never commit `.env` to GitHub or expose a service-role key in frontend code.
+SMTP variables are optional. See `.env.example` and `docs/DEVELOPMENT.md`.
 
-### 5. Run the development server
+Never commit the actual `.env` file.
 
-From the backend directory:
+### 5. Start the Development Server
 
 ```bash
 uvicorn app.main:app --reload
 ```
 
-The default development address is:
+The API will be available at:
 
-http://127.0.0.1:8000
+- API: http://localhost:8000
+- Swagger UI: http://localhost:8000/docs
+- ReDoc: http://localhost:8000/redoc
+- Health check: http://localhost:8000/health
 
-Interactive API documentation:
+## API Documentation
 
-http://127.0.0.1:8000/docs
+See [docs/API.md](docs/API.md) for the endpoint reference.
 
-Alternative API documentation:
+## Architecture
 
-http://127.0.0.1:8000/redoc
+See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for application layers and request flow.
 
-## Authentication
+## Development Guide
 
-Authentication is designed around Supabase Auth.
+See [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md) for local setup and testing instructions.
 
-The current authentication foundation includes:
+## Security
 
-- Supabase user token verification.
-- Current-user dependency.
-- Admin-role verification through trusted Supabase `app_metadata`.
+See [docs/SECURITY.md](docs/SECURITY.md) for authentication, authorization, Supabase credentials, and database security.
 
-The login endpoint, logout flow, and complete Admin authorization workflow are still under development.
+## Implementation Status
 
-## Database
+| Feature | Code status | Verification status |
+|---|---|---|
+| FastAPI application | Implemented | Import check passed |
+| CORS configuration | Implemented | Runtime verification pending |
+| Supabase clients | Implemented | Database verification pending |
+| Authentication endpoints | Implemented | End-to-end verification pending |
+| Projects API | Implemented | CRUD verification pending |
+| Skills API | Implemented | CRUD verification pending |
+| Certificates API | Implemented | CRUD verification pending |
+| Contact submission | Implemented | Database verification pending |
+| Messages API | Implemented | End-to-end verification pending |
+| Profile API | Implemented | Database verification pending |
+| SMTP notifications | Implemented | SMTP verification pending |
+| Automated integration tests | Pending | Not verified |
+| Production deployment | Pending | Not deployed |
 
-The backend is designed to work with these Supabase tables:
+## Development Principles
 
-- `profiles`
-- `projects`
-- `skills`
-- `certificates`
-- `contact_messages`
+- Keep routes, schemas, services, and core configuration separated.
+- Validate incoming requests using Pydantic.
+- Verify admin authorization on protected operations.
+- Keep secrets in backend environment variables.
+- Test database operations before production deployment.
+- Maintain documentation as the implementation evolves.
 
-## Development Guidelines
+## Author
 
-- Keep API routes organized by responsibility.
-- Use Pydantic schemas for request validation.
-- Keep database operations in service modules as the application grows.
-- Protect all administrative operations with server-side authorization.
-- Never expose private environment variables.
-- Test changes before committing them.
+**Alex Gustilo**
 
-## Documentation
+BSIT Student | Aspiring Full-Stack Developer
 
-Additional technical documentation is available in the `docs/` directory:
-
-- [Architecture](docs/ARCHITECTURE.md)
-- [API Reference](docs/API.md)
-- [Development Guide](docs/DEVELOPMENT.md)
-- [Security](docs/SECURITY.md)
-
-## Project Status
-
-This backend is currently under development.
-
-The project structure, configuration, Supabase client foundation, and authentication dependencies are being prepared. API functionality, complete authentication, administrative operations, testing, and deployment will be implemented incrementally.
-
-## Deployment
-
-The planned deployment platform is Fly.io.
-
-Production environment variables will be configured through the deployment platform rather than committed to the repository.
+GitHub: https://github.com/alexgustilo

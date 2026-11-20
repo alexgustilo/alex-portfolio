@@ -2,11 +2,15 @@
 
 ## Local Environment
 
-The backend is developed using Python and FastAPI.
+The backend is developed using Python, FastAPI, Uvicorn, and Supabase.
 
-Run commands from the `backend/` directory unless otherwise specified.
+Recommended local directory:
+
+`~/My_Project_Files/alex-portfolio/backend`
 
 ## Activate the Virtual Environment
+
+From the backend directory:
 
 ```bash
 source venv/bin/activate
@@ -18,13 +22,44 @@ source venv/bin/activate
 pip install -r requirements.txt
 ```
 
+## Configure Environment Variables
+
+Copy the example file:
+
+```bash
+cp .env.example .env
+```
+
+The backend requires:
+
+- `SUPABASE_URL`
+- `SUPABASE_ANON_KEY`
+
+Administrator database operations also require:
+
+- `SUPABASE_SERVICE_ROLE_KEY`
+
+Never commit `.env`.
+
 ## Start the Development Server
 
 ```bash
 uvicorn app.main:app --reload
 ```
 
-The `--reload` option automatically restarts the server when application files change.
+The local API is available at:
+
+`http://localhost:8000`
+
+## Interactive API Documentation
+
+Swagger UI:
+
+`http://localhost:8000/docs`
+
+ReDoc:
+
+`http://localhost:8000/redoc`
 
 ## Validate Python Syntax
 
@@ -32,44 +67,113 @@ The `--reload` option automatically restarts the server when application files c
 python -m compileall -q app
 ```
 
-Run this command from the backend directory.
+No output generally indicates that Python syntax compilation completed successfully.
+
+## Verify Application Imports and Registered Routes
+
+```bash
+python - <<'PY'
+from app.main import app
+
+print("Application:", app.title)
+
+for path, methods in app.openapi()["paths"].items():
+    print(path, "->", ", ".join(methods.keys()))
+PY
+```
+
+This verifies application imports and OpenAPI route registration. It does not perform database integration tests.
+
+## Health Check
+
+```bash
+curl http://localhost:8000/health
+```
+
+Expected response:
+
+```json
+{
+  "status": "ok",
+  "environment": "development"
+}
+```
+
+## Testing Database Operations
+
+Use Swagger UI to test the API.
+
+Suggested testing sequence:
+
+1. Authenticate using the admin login endpoint.
+2. Authorize Swagger with the returned access token.
+3. Create a temporary project.
+4. Retrieve the project list.
+5. Update the temporary project.
+6. Delete the temporary project.
+7. Repeat for skills and certificates.
+8. Submit a public contact message.
+9. Verify that an administrator can retrieve and manage the message.
+
+Use test records, and avoid deleting actual portfolio data.
+
+## Email Configuration
+
+SMTP is optional.
+
+The email service uses the following environment variables:
+
+- `SMTP_HOST`
+- `SMTP_PORT`
+- `SMTP_USERNAME`
+- `SMTP_PASSWORD`
+- `SMTP_FROM_EMAIL`
+- `CONTACT_RECIPIENT_EMAIL`
+- `SMTP_USE_TLS`
+
+Email delivery must be verified with a real SMTP provider before production use.
+
+## Automated Tests
+
+The project has a `tests/` directory. Automated unit and integration test coverage still needs to be implemented and verified.
 
 ## Update Dependencies
 
-After installing a new dependency:
+After intentionally adding or changing Python packages:
 
 ```bash
 pip freeze > requirements.txt
 ```
 
-Review the generated changes before committing.
-
-## Testing
-
-Automated tests will be maintained in the `tests/` directory.
-
-Run tests with:
-
-```bash
-pytest
-```
-
-Pytest must be installed before running this command.
+Review the resulting dependency changes before committing.
 
 ## Git Guidelines
 
-- Use descriptive commit messages.
-- Do not commit virtual environments.
-- Do not commit `.env` files.
-- Keep changes focused and review them before pushing.
-- Test the application before committing.
+Check current changes:
+
+```bash
+git status
+```
+
+Review changes:
+
+```bash
+git diff
+```
+
+The project uses descriptive commits and individual file commits when appropriate.
 
 ## Development Workflow
 
-1. Implement one feature or module.
-2. Validate Python syntax.
-3. Run relevant tests.
-4. Start the development server.
-5. Verify the API behavior.
+1. Review the existing implementation.
+2. Make a focused change.
+3. Validate Python syntax.
+4. Verify imports and route registration.
+5. Test the affected endpoint.
 6. Review Git changes.
-7. Commit and push the completed work.
+7. Update documentation.
+8. Commit and push the completed work.
+
+## Important
+
+A successful application startup or import check does not prove that all Supabase operations, authentication workflows, or SMTP delivery are working.

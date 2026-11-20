@@ -1,77 +1,160 @@
 # Security Guidelines
 
-## Authentication
+## 1. Authentication
 
-Supabase Auth is the planned identity provider for the Admin Dashboard.
+The application uses Supabase Auth.
 
-The backend must verify Supabase access tokens before allowing access to protected endpoints.
+The backend provides endpoints for:
 
-## Authorization
+- Administrator login.
+- Session refresh.
+- Current authenticated user.
+- Session logout.
 
-Administrative access must be checked on the backend.
+Protected requests must include:
 
-The Admin role should be stored in trusted Supabase `app_metadata`, not in user-editable profile metadata.
+`Authorization: Bearer <access_token>`
 
-The frontend must never be treated as the security boundary.
+The backend verifies the access token using Supabase Auth.
 
-## Environment Variables
+## 2. Authorization
 
-Private credentials must be stored in the backend `.env` file during local development.
+Authentication and authorization are different:
 
-Never commit:
+- Authentication verifies the user's identity.
+- Authorization checks what the authenticated user is allowed to do.
 
-- Supabase service-role keys.
-- Secret API keys.
-- Database passwords.
-- Private email credentials.
-- Production environment variables.
+Administrator operations use the `get_current_admin` dependency.
+
+The authorization helper checks the trusted Supabase `app_metadata.role` value.
+
+Expected role:
+
+`admin`
+
+Do not trust a role value supplied by an ordinary frontend request or editable user metadata.
+
+Administrator role assignment must be performed through a trusted administrative process.
+
+## 3. Environment Variables
+
+Sensitive settings must be stored in the backend `.env` file.
+
+Never:
+
+- Commit `.env` to Git.
+- Place secret keys in frontend environment variables.
+- Include secret keys in API responses.
+- Share privileged credentials in screenshots or public documentation.
 
 The `.env.example` file should contain placeholders only.
 
-## Supabase Keys
+## 4. Supabase Keys
 
-Use the publishable key (or legacy anon key) for operations governed by Supabase Row Level Security.
+The backend uses two kinds of Supabase credentials.
 
-The service-role key bypasses Row Level Security and must only be used for carefully controlled server-side operations.
+### Publishable / Anonymous Key
 
-Never expose the service-role key to the browser or public frontend.
+Used by the regular Supabase client for public reads and contact submissions.
 
-## Database Security
+### Secret / Service Role Key
 
-Enable Row Level Security on application tables.
+Used by the privileged server-side client for administrator database operations.
 
-Policies should follow the principle of least privilege:
+The privileged key can bypass Row Level Security.
 
-- Public visitors may read intended public portfolio content.
-- Public visitors may submit contact messages.
-- Administrative operations require verified Admin authorization.
-- Private messages and profile information must not be publicly accessible.
+Therefore:
 
-## API Protection
+- Keep it on the backend only.
+- Never expose it to the browser.
+- Never send it to the frontend.
+- Restrict its use to operations that verify admin authorization first.
+- Rotate it immediately if it is exposed.
 
-Before production deployment, implement and verify:
+## 5. Row Level Security
 
-- Request validation.
-- Authentication and authorization.
-- Rate limiting for public endpoints.
-- Safe error responses.
-- Input abuse and spam protection.
-- Secure CORS configuration.
-- HTTPS in production.
+RLS is enabled on the initial portfolio database tables.
 
-## File Uploads
+Initial policies include:
 
-File uploads should validate:
+- Public reads for projects.
+- Public reads for skills.
+- Public reads for certificates.
+- Public insertion of contact messages.
+- Authenticated users selecting their own profile.
 
-- Allowed file types.
-- File size limits.
-- User permissions.
-- Storage destination.
+These starter policies are not a complete production security configuration.
 
-Public image access does not mean public upload permission.
+### Important privileged-client behavior
 
-## Production
+The current administrator services use the privileged Supabase client.
 
-Production secrets must be configured through Fly.io secrets or another secure environment-variable mechanism.
+Because this key bypasses RLS, database permissions do not replace backend authorization.
 
-Never include secrets in source code, logs, or documentation.
+Every operation using the privileged client must be protected by correct server-side authorization.
+
+RLS policies and the complete authorization model must be reviewed before production deployment.
+
+## 6. Contact Form
+
+The public contact endpoint accepts visitor messages.
+
+Recommended safeguards before production:
+
+- Add rate limiting.
+- Add abuse and spam protection.
+- Validate and limit submitted content.
+- Monitor submission failures.
+- Protect recipient and SMTP credentials.
+- Consider CAPTCHA or other anti-abuse controls.
+
+## 7. Email Notifications
+
+SMTP credentials must remain in backend environment variables.
+
+Avoid exposing email provider credentials or internal mail configuration through public API responses.
+
+The current email notification implementation returns whether an attempt was successful. Real delivery must be verified using the selected SMTP provider.
+
+## 8. Profile Management
+
+Profile endpoints require administrator authorization.
+
+Users should only be allowed to update their own profile.
+
+The backend uses the authenticated user's ID when identifying their profile record.
+
+## 9. API Error Handling
+
+Protected endpoints should return appropriate HTTP status codes:
+
+- `401` for missing or invalid authentication.
+- `403` for insufficient permissions.
+- `404` for missing resources.
+- `422` for invalid request data.
+
+Avoid returning credentials, tokens, or sensitive internal exception details in error responses.
+
+## 10. Production Security Checklist
+
+Before deployment:
+
+- [ ] Verify admin login and token refresh.
+- [ ] Test unauthorized access to every admin endpoint.
+- [ ] Verify admin role assignment and enforcement.
+- [ ] Review all database RLS policies.
+- [ ] Protect privileged Supabase credentials.
+- [ ] Add request rate limiting.
+- [ ] Configure production CORS origins.
+- [ ] Configure HTTPS.
+- [ ] Configure secure environment variables.
+- [ ] Test contact form abuse protection.
+- [ ] Verify SMTP delivery.
+- [ ] Review application logs and error responses.
+- [ ] Complete API and database security testing.
+
+## Security Status
+
+The backend contains initial authentication and authorization code, but the complete security model has not yet passed production verification.
+
+Do not treat the current implementation as production-secure until the checklist above has been reviewed and tested.

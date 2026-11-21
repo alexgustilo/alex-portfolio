@@ -35,9 +35,6 @@ Built with FastAPI and Supabase, this application provides API endpoints for por
 - Contact message management.
 - Administrator profile management.
 
-### Email Notifications
-Optional SMTP notification when a visitor submits a contact message.
-
 ## Project Structure
 
 ```text
@@ -69,7 +66,6 @@ backend/
 │   │   ├── auth_service.py
 │   │   ├── certificate_service.py
 │   │   ├── contact_service.py
-│   │   ├── email_service.py
 │   │   ├── message_service.py
 │   │   ├── profile_service.py
 │   │   ├── project_service.py
@@ -139,8 +135,6 @@ SUPABASE_SERVICE_ROLE_KEY=your_server_secret_key
 
 The privileged Supabase key is required for the current administrator database operations.
 
-SMTP variables are optional. See `.env.example` and `docs/DEVELOPMENT.md`.
-
 Never commit the actual `.env` file.
 
 ### 5. Start the Development Server
@@ -186,7 +180,6 @@ See [docs/SECURITY.md](docs/SECURITY.md) for authentication, authorization, Supa
 | Contact submission | Implemented | Database verification pending |
 | Messages API | Implemented | End-to-end verification pending |
 | Profile API | Implemented | Database verification pending |
-| SMTP notifications | Implemented | SMTP verification pending |
 | Automated integration tests | Pending | Not verified |
 | Production deployment | Pending | Not deployed |
 

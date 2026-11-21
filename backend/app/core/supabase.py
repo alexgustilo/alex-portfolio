@@ -2,28 +2,21 @@ from functools import lru_cache
 
 from fastapi import HTTPException, status
 from supabase import Client, create_client
-from supabase.lib.client_options import ClientOptions
 
 from app.core.config import settings
 
 
 @lru_cache
 def get_supabase() -> Client:
-    """Client for public operations using the publishable key."""
+    """Create the regular Supabase client."""
     return create_client(
         settings.supabase_url,
         settings.supabase_anon_key.get_secret_value(),
     )
 
-
 @lru_cache
 def get_admin_supabase() -> Client:
-    """
-    Server-only privileged client.
-
-    Only call this from operations that already require
-    verified admin authorization.
-    """
+    """Create the privileged server-side Supabase client."""
     secret = settings.supabase_service_role_key
 
     if secret is None or not secret.get_secret_value().strip():
@@ -35,8 +28,4 @@ def get_admin_supabase() -> Client:
     return create_client(
         settings.supabase_url,
         secret.get_secret_value(),
-        options=ClientOptions(
-            auto_refresh_token=False,
-            persist_session=False,
-        ),
     )

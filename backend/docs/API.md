@@ -187,7 +187,7 @@ Prefix: `/api/v1/contact`
 
 The API saves the message in `contact_messages`.
 
-If SMTP is configured, the backend attempts to send an email notification. The response indicates whether that notification was sent.
+The API stores submitted messages in the `contact_messages` table. Email notifications are not currently included.
 
 ## 7. Messages
 

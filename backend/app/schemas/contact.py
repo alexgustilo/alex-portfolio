@@ -10,4 +10,3 @@ class ContactCreate(BaseModel):
 
 class ContactSubmissionResponse(BaseModel):
     message: str
-    email_notification_sent: bool

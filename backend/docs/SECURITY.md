@@ -105,18 +105,9 @@ Recommended safeguards before production:
 - Add abuse and spam protection.
 - Validate and limit submitted content.
 - Monitor submission failures.
-- Protect recipient and SMTP credentials.
 - Consider CAPTCHA or other anti-abuse controls.
 
-## 7. Email Notifications
-
-SMTP credentials must remain in backend environment variables.
-
-Avoid exposing email provider credentials or internal mail configuration through public API responses.
-
-The current email notification implementation returns whether an attempt was successful. Real delivery must be verified using the selected SMTP provider.
-
-## 8. Profile Management
+## 7. Profile Management
 
 Profile endpoints require administrator authorization.
 
@@ -124,7 +115,7 @@ Users should only be allowed to update their own profile.
 
 The backend uses the authenticated user's ID when identifying their profile record.
 
-## 9. API Error Handling
+## 8. API Error Handling
 
 Protected endpoints should return appropriate HTTP status codes:
 
@@ -135,7 +126,7 @@ Protected endpoints should return appropriate HTTP status codes:
 
 Avoid returning credentials, tokens, or sensitive internal exception details in error responses.
 
-## 10. Production Security Checklist
+## 9. Production Security Checklist
 
 Before deployment:
 
@@ -149,7 +140,6 @@ Before deployment:
 - [ ] Configure HTTPS.
 - [ ] Configure secure environment variables.
 - [ ] Test contact form abuse protection.
-- [ ] Verify SMTP delivery.
 - [ ] Review application logs and error responses.
 - [ ] Complete API and database security testing.
 

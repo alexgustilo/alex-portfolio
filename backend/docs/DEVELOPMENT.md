@@ -117,22 +117,6 @@ Suggested testing sequence:
 
 Use test records, and avoid deleting actual portfolio data.
 
-## Email Configuration
-
-SMTP is optional.
-
-The email service uses the following environment variables:
-
-- `SMTP_HOST`
-- `SMTP_PORT`
-- `SMTP_USERNAME`
-- `SMTP_PASSWORD`
-- `SMTP_FROM_EMAIL`
-- `CONTACT_RECIPIENT_EMAIL`
-- `SMTP_USE_TLS`
-
-Email delivery must be verified with a real SMTP provider before production use.
-
 ## Automated Tests
 
 The project has a `tests/` directory. Automated unit and integration test coverage still needs to be implemented and verified.
@@ -176,4 +160,4 @@ The project uses descriptive commits and individual file commits when appropriat
 
 ## Important
 
-A successful application startup or import check does not prove that all Supabase operations, authentication workflows, or SMTP delivery are working.
+A successful application startup or import check does not prove that all Supabase database operations and authentication workflows are working.

@@ -135,7 +135,6 @@ Current modules:
 - `contact_service.py`
 - `message_service.py`
 - `profile_service.py`
-- `email_service.py`
 
 ## Request Flow
 
@@ -162,8 +161,7 @@ Current modules:
 1. A visitor submits the contact form.
 2. The Contact route validates the request.
 3. The Contact service inserts the message into Supabase.
-4. The Email service attempts an optional SMTP notification.
-5. The API returns a submission confirmation and notification status.
+4. The API returns a submission confirmation.
 
 ## API Versioning
 

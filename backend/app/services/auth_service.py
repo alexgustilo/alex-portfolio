@@ -1,7 +1,6 @@
 import httpx
 
 from supabase import create_client
-from supabase.lib.client_options import ClientOptions
 
 from app.core.config import settings
 from app.core.security import is_admin_user
@@ -11,10 +10,6 @@ def _new_auth_client():
     return create_client(
         settings.supabase_url,
         settings.supabase_anon_key.get_secret_value(),
-        options=ClientOptions(
-            auto_refresh_token=False,
-            persist_session=False,
-        ),
     )
 
 
@@ -36,38 +31,32 @@ def _session_payload(session, user) -> dict:
 def login_admin(email: str, password: str) -> dict:
     client = _new_auth_client()
 
-    try:
-        response = client.auth.sign_in_with_password({
-            "email": email,
-            "password": password,
-        })
+    response = client.auth.sign_in_with_password({
+        "email": email,
+        "password": password,
+    })
 
-        if response.user is None or response.session is None:
-            raise ValueError("Supabase did not return an authenticated session.")
+    if response.user is None or response.session is None:
+        raise ValueError("No authenticated session returned.")
 
-        if not is_admin_user(response.user):
-            raise PermissionError("This account does not have admin access.")
+    if not is_admin_user(response.user):
+        raise PermissionError("This account does not have admin access.")
 
-        return _session_payload(response.session, response.user)
-    finally:
-        client.close()
+    return _session_payload(response.session, response.user)
 
 
 def refresh_admin_session(refresh_token: str) -> dict:
     client = _new_auth_client()
 
-    try:
-        response = client.auth.refresh_session(refresh_token)
+    response = client.auth.refresh_session(refresh_token)
 
-        if response.user is None or response.session is None:
-            raise ValueError("Unable to refresh the session.")
+    if response.user is None or response.session is None:
+        raise ValueError("Unable to refresh the session.")
 
-        if not is_admin_user(response.user):
-            raise PermissionError("This account does not have admin access.")
+    if not is_admin_user(response.user):
+        raise PermissionError("This account does not have admin access.")
 
-        return _session_payload(response.session, response.user)
-    finally:
-        client.close()
+    return _session_payload(response.session, response.user)
 
 
 def logout_user(access_token: str) -> None:

@@ -1,67 +1,72 @@
+
 # Frontend Development Guide
 
 ## Requirements
 
-- Node.js
+- Node.js compatible with Next.js 16
 - npm
+- FastAPI backend for admin/API features
 
-## Install Dependencies
+## Install and run
 
 ```bash
+cd frontend
 npm install
-```
-
-## Run Development Server
-
-```bash
 npm run dev
 ```
 
-Default local URL:
+Open http://localhost:3000.
 
-http://localhost:3000
+Run the backend separately from the `backend/` directory so the frontend can reach `http://localhost:8000`.
 
-## Lint
+## Environment
 
-```bash
-npm run lint
-```
-
-## Production Build
-
-```bash
-npm run build
-```
-
-## Environment Variables
-
-Create `.env.local` when frontend environment configuration is needed.
-
-Example:
+Create `frontend/.env.local`:
 
 ```env
 NEXT_PUBLIC_API_URL=http://localhost:8000/api/v1
-NEXT_PUBLIC_SUPABASE_URL=your_supabase_project_url
-NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_publishable_key
 ```
 
-Only public values should use the `NEXT_PUBLIC_` prefix.
+This is the environment variable referenced by the current frontend code. Supabase URL and Supabase keys are not read by the frontend API/auth modules.
 
-Never place service-role keys or private credentials in frontend environment variables.
+Never put service-role keys, backend secrets, or private credentials in a `NEXT_PUBLIC_` variable.
 
-## Development Workflow
+## Available scripts
 
-1. Review the existing component and styles.
-2. Make focused changes.
-3. Run ESLint.
-4. Run the production build.
-5. Test the affected pages.
-6. Review Git changes before committing.
+```bash
+npm run dev
+npm run lint
+npm run build
+npm run start
+```
 
-## Git Guidelines
+- `dev`: local development server.
+- `lint`: ESLint.
+- `build`: production build.
+- `start`: serve a production build.
 
-- Use descriptive commit messages.
-- Keep commits focused.
-- Do not commit `.env.local`.
-- Do not commit `node_modules/` or `.next/`.
-- Review changes before pushing.
+Run lint/build during planned verification (for example, after completing a feature group or before pushing a release). For small iterative UI changes, test the affected page and relevant user flow first.
+
+## Current API integration
+
+- `src/lib/api.ts` is the shared request helper.
+- `src/lib/auth.ts` provides login, refresh, current-admin, and logout helpers.
+- Admin API requests attach the access token from `sessionStorage`.
+- FormData requests do not set `Content-Type` manually, allowing the browser to add the multipart boundary.
+- The current public portfolio content remains local/static in `src/lib/data.ts`.
+
+## Suggested workflow
+
+1. Inspect the existing page, component, and styles.
+2. Identify the backend endpoint and schema before adding API integration.
+3. Make focused changes and preserve existing behavior.
+4. Run the affected page and test the relevant user flow.
+5. Review `git diff` and `git status`.
+6. Run lint/build at a suitable milestone or before a release.
+7. Commit only the intended files.
+
+## Git hygiene
+
+- Keep commits focused and descriptive.
+- Do not commit `.env.local`, `node_modules/`, or `.next/`.
+- Review staged changes before every commit.

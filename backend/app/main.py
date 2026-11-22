@@ -9,6 +9,7 @@ from app.routes.messages import router as messages_router
 from app.routes.profile import router as profile_router
 from app.routes.projects import router as projects_router
 from app.routes.skills import router as skills_router
+from app.routes.uploads import router as uploads_router
 
 
 app = FastAPI(
@@ -35,6 +36,7 @@ app.include_router(certificates_router, prefix=settings.api_prefix)
 app.include_router(contact_router, prefix=settings.api_prefix)
 app.include_router(messages_router, prefix=settings.api_prefix)
 app.include_router(profile_router, prefix=settings.api_prefix)
+app.include_router(uploads_router, prefix=settings.api_prefix)
 
 
 @app.get("/", tags=["Health"])

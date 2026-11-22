@@ -1,188 +1,68 @@
+
 # Backend Architecture
 
 ## Overview
 
-The Alex Portfolio backend uses FastAPI and Supabase.
+The backend is a FastAPI application organized into routes, schemas, services, dependencies, and core configuration.
 
-The application separates HTTP routes, request validation, business logic, configuration, authentication dependencies, and database access.
+## Request flow
 
-## System Architecture
+Typical API request:
 
-```text
-Next.js Frontend
-       |
-       | HTTP requests
-       v
-FastAPI Application
-       |
-       +----------------------+
-       |                      |
-       v                      v
-    Public Routes        Admin Routes
-       |                      |
-       v                      v
-    Schemas               Authentication
-       |                      |
-       v                      v
-    Services             Admin Authorization
-       |                      |
-       +-----------+----------+
-                   |
-                   v
-             Supabase Client
-                   |
-          +--------+--------+
-          |                 |
-          v                 v
-      PostgreSQL        Supabase Auth
-```
+`HTTP request → FastAPI route → dependency/auth check → Pydantic schema → service → Supabase → response`
 
-## Application Layers
+- `routes/`: HTTP methods, URL paths, dependency declarations, and response handling.
+- `schemas/`: request validation and response models.
+- `services/`: database and Storage operations.
+- `dependencies/auth.py`: Bearer token extraction, Supabase user validation, and admin dependency.
+- `core/config.py`: environment-backed settings.
+- `core/security.py`: trusted admin-role check.
+- `core/supabase.py`: cached regular and privileged Supabase clients.
+- `main.py`: FastAPI app, CORS middleware, and router registration.
 
-### 1. Main Application
+## Supabase clients
 
-File: `app/main.py`
+### Regular client
 
-Responsibilities:
+`get_supabase()` uses the Supabase URL and publishable/anon key. It is used for public reads and public contact submissions, and for validating user access tokens through Supabase Auth.
 
-- Create the FastAPI application.
-- Configure CORS.
-- Register API routers.
-- Define application health endpoints.
+### Privileged client
 
-### 2. Core
+`get_admin_supabase()` uses `SUPABASE_SERVICE_ROLE_KEY`. It is used by protected services for administrator data operations and project-image Storage operations. It raises HTTP 503 when the key is not configured.
 
-Directory: `app/core/`
+The privileged key must remain server-side.
 
-#### config.py
+## Authentication and authorization
 
-Defines application settings and loads environment variables using Pydantic Settings.
+1. The client sends a Supabase access token in the Bearer Authorization header.
+2. `get_current_user` validates the token with Supabase Auth.
+3. `get_current_admin` additionally checks `app_metadata.role == "admin"`.
+4. Protected routes use the admin dependency before performing privileged operations.
 
-#### supabase.py
+The admin role is read from Supabase `app_metadata`, which is server-controlled. Do not trust a role value submitted by a browser.
 
-Creates two separate clients:
+## Data services
 
-- Public client using the publishable/anonymous key.
-- Privileged server client using the backend secret key.
+Portfolio tables used by the service layer:
 
-The privileged client must only be used by server-side operations that already verify admin authorization.
-
-#### security.py
-
-Checks whether the authenticated Supabase user has the trusted administrator role in `app_metadata`.
-
-### 3. Dependencies
-
-Directory: `app/dependencies/`
-
-#### auth.py
-
-Provides reusable authentication dependencies:
-
-- `get_current_user`
-- `get_current_admin`
-
-The current user dependency validates a supplied Bearer token through Supabase Auth.
-
-The admin dependency checks the authenticated user's administrator role.
-
-### 4. Routes
-
-Directory: `app/routes/`
-
-Routes receive HTTP requests and return API responses.
-
-Current modules:
-
-- `auth.py`
-- `projects.py`
-- `skills.py`
-- `certificates.py`
-- `contact.py`
-- `messages.py`
-- `profile.py`
-
-Routes should not contain large amounts of database or business logic.
-
-### 5. Schemas
-
-Directory: `app/schemas/`
-
-Schemas define and validate request and response data using Pydantic.
-
-Current modules:
-
-- `auth.py`
-- `projects.py`
-- `skills.py`
-- `certificates.py`
-- `contact.py`
-- `messages.py`
-- `profile.py`
-
-### 6. Services
-
-Directory: `app/services/`
-
-Services contain database and application operations.
-
-Current modules:
-
-- `auth_service.py`
-- `project_service.py`
-- `skill_service.py`
-- `certificate_service.py`
-- `contact_service.py`
-- `message_service.py`
-- `profile_service.py`
-
-## Request Flow
-
-### Public Portfolio Read
-
-1. The frontend requests public portfolio information.
-2. A route receives the request.
-3. The service queries Supabase using the public client.
-4. The result is returned through the API response.
-
-### Administrator Write
-
-1. The administrator signs in through Supabase Auth.
-2. The frontend receives an access token.
-3. The frontend sends the token as a Bearer token.
-4. FastAPI verifies the token.
-5. The admin dependency verifies the trusted admin role.
-6. The route validates the submitted data through a Pydantic schema.
-7. The service performs the requested database operation.
-8. The API returns the result.
-
-### Contact Submission
-
-1. A visitor submits the contact form.
-2. The Contact route validates the request.
-3. The Contact service inserts the message into Supabase.
-4. The API returns a submission confirmation.
-
-## API Versioning
-
-The current API prefix is:
-
-`/api/v1`
-
-The prefix is configured through the `API_PREFIX` environment variable and applied when registering the routers in `main.py`.
-
-## Database
-
-The backend uses these existing Supabase tables:
-
-- `profiles`
 - `projects`
 - `skills`
 - `certificates`
 - `contact_messages`
+- `profiles`
 
-## Implementation Notes
+The code expects these tables and their columns to exist in the Supabase database. The application repository does not include database migrations or SQL schema definitions in this snapshot.
 
-The application modules are implemented in code, but database integration and authorization must still be tested end to end.
+## Storage service
 
-Production architecture must also be reviewed for secret handling, database policies, error handling, and deployment configuration.
+Project images are stored in the `portfolio-projects` Supabase Storage bucket. `routes/uploads.py` validates uploads and restricts deletion to the `projects/` folder. `services/upload_service.py` uses the privileged Supabase client to upload and remove objects.
+
+The API returns a public URL for display. The bucket's public-read configuration must be set appropriately in Supabase for unauthenticated image display. Upload and deletion remain protected by FastAPI admin authorization.
+
+## Frontend integration boundary
+
+The intended flow is:
+
+`Next.js frontend → FastAPI → Supabase`
+
+The frontend must not connect using the service-role key. Public portfolio sections currently use static frontend data; the backend's public read endpoints are not yet wired into those sections.

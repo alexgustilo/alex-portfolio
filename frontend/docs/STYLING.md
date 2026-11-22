@@ -1,36 +1,28 @@
+
 # Styling Guide
 
-## Design Direction
+## Styling stack
 
-The application follows a minimalist professional visual style.
+The current frontend uses Tailwind CSS 4 and shared global styles in `src/app/globals.css`. Most component styling is expressed through Tailwind utility classes.
 
-## Primary Colors
+## Existing visual direction
 
-| Color | Value |
-|---|---|
-| Purple | `#6d5ce7` |
-| Blue | `#3978e8` |
-| Background | Light / white |
+- Minimal, professional portfolio layout.
+- Purple/blue accent treatment.
+- Light backgrounds, subtle borders, rounded cards, and responsive spacing.
+- Responsive navigation and grid layouts.
+
+Some admin screens use explicit color values (for example `#6d5ce7` and `#3978e8`) while public components also use global theme classes such as `primary`, `muted`, and `border`.
 
 ## Guidelines
 
-- Maintain consistent spacing.
-- Use readable typography.
-- Keep layouts responsive.
-- Use accent colors consistently.
-- Prefer lightweight animations.
-- Maintain accessible text contrast.
-- Reuse existing global styles and design tokens.
-- Avoid introducing conflicting styling systems.
+- Review `src/app/globals.css` before adding global rules or new design tokens.
+- Reuse existing Tailwind classes and theme variables.
+- Keep mobile, tablet, and desktop layouts usable.
+- Maintain readable contrast, visible focus states, and semantic interactive elements.
+- Avoid adding another CSS framework or duplicating existing design rules.
+- Keep animation lightweight and purposeful.
 
-## Responsive Design
+## Updating styles
 
-The application should work across:
-
-- Mobile phones.
-- Tablets.
-- Desktop screens.
-
-## Changes
-
-Before introducing new global styles, review `src/app/globals.css` to avoid duplicating existing design rules.
+Make the smallest change that achieves the requested visual result. Check the affected page at its relevant responsive sizes. A full production build is best reserved for a grouped verification pass or release check rather than every minor style adjustment.

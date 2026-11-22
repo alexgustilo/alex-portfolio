@@ -1,42 +1,59 @@
+
 # Frontend Architecture
 
-## Overview
+## Application structure
 
-The application uses Next.js App Router with a modular component structure.
+The application uses the Next.js App Router.
 
-The application has two primary areas:
+- `src/app`: route entry points and root styles/layout.
+- `src/components/layout`: public navbar and footer.
+- `src/components/sections`: public portfolio sections.
+- `src/components/admin/layout`: administrator header and sidebar.
+- `src/components/shared`: reusable presentation components.
+- `src/lib/data.ts`: static public portfolio content.
+- `src/lib/api.ts`: shared FastAPI HTTP client.
+- `src/lib/auth.ts`: administrator authentication helpers.
+- `src/types` and `src/hooks`: reserved organization areas; inspect current contents before assuming a feature exists.
 
-1. Public Portfolio
-2. Admin Dashboard
+## Routes
 
-## Public Routes
+- `/`: public one-page portfolio.
+- `/admin/login`: administrator login.
+- `/admin/dashboard`: protected dashboard.
+- `/admin/projects`: protected project management.
 
-- `/` – Public portfolio homepage.
+The admin sidebar also links to skills, certificates, messages, and profile, but their page implementations are absent from this snapshot.
 
-## Admin Routes
+## Data flow
 
-- `/admin/login`
-- `/admin/dashboard`
-- `/admin/projects`
-- `/admin/skills`
-- `/admin/certificates`
-- `/admin/messages`
-- `/admin/profile`
+### Public website
 
-The protected route group is a routing and layout organization mechanism. It does not independently enforce authentication.
+Current public section flow:
 
-## Component Organization
+`Next.js page/components → src/lib/data.ts`
 
-- `components/layout`: Navigation and shared page layout.
-- `components/sections`: Public portfolio sections.
-- `components/admin`: Admin interface components.
-- `components/shared`: Reusable presentation components.
-- `components/ui`: Reusable interface primitives.
+The public sections do not currently fetch projects, skills, or certificates from FastAPI. Their displayed content is local/static.
 
-## Data Flow
+The Contact section currently links to a `mailto:` address placeholder. It does not call `POST /api/v1/contact`.
 
-The intended production data flow is:
+### Admin
 
-Next.js UI → FastAPI REST API → Supabase
+`Admin page → src/lib/api.ts → FastAPI REST API → Supabase`
 
-The frontend must not access the Supabase service-role key.
+The frontend sends Bearer access tokens for authenticated requests. FastAPI verifies the token and performs role checks before privileged operations.
+
+### Image upload
+
+`Project form → multipart request → FastAPI upload route → Supabase Storage`
+
+The upload route uses the `portfolio-projects` bucket and returns a public image URL plus a storage path.
+
+## Session handling
+
+`api.ts` stores tokens in browser `sessionStorage` and adds the access token to API requests. `auth.ts` wraps login, refresh, current-user, and logout endpoints.
+
+The protected layout performs a client-side `/auth/me` check. This design does not provide server-side route protection and should be hardened before production, preferably with a server-managed HttpOnly cookie approach.
+
+## Configuration
+
+The frontend reads `NEXT_PUBLIC_API_URL`. Do not add Supabase private credentials to the frontend. The local default is `http://localhost:8000/api/v1`.

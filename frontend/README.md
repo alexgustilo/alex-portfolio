@@ -1,147 +1,146 @@
-# Alex Portfolio – Frontend
 
-The frontend application for Alex Gustilo's developer portfolio.
+# Alex Portfolio — Frontend
 
-Built with Next.js, React, TypeScript, and Tailwind CSS, this application provides a responsive public portfolio and an administrative interface for managing portfolio content.
+The Next.js application for Alex Gustilo's personal developer portfolio. It contains the public portfolio homepage and the current administrator interface.
 
-## Technology Stack
+## Technology
 
 | Technology | Purpose |
 |---|---|
-| Next.js | React framework |
-| React | User interface |
-| TypeScript | Type safety |
-| Tailwind CSS | Styling |
-| Lucide React | Icons |
-| ESLint | Code quality |
-| Supabase | Planned authentication and data integration |
-| FastAPI | Planned backend API |
+| Next.js 16 (App Router) | React framework and routing |
+| React 19 | UI |
+| TypeScript | Application types |
+| Tailwind CSS 4 | Styling |
+| Lucide React | Interface icons |
+| ESLint 9 | Linting |
+| FastAPI | Backend REST API |
 
-## Features
+The frontend communicates with FastAPI. It does **not** connect directly to Supabase.
 
-### Public Portfolio
-- Hero section
-- About section
-- Technical skills
-- Projects showcase
-- Certificates and achievements
-- Development journey
-- Contact section
-- Responsive navigation and footer
+## Current functionality
 
-### Admin Dashboard
-- Admin login interface
-- Dashboard overview
-- Project management interface
-- Skills management interface
-- Certificate management interface
-- Messages interface
-- Admin profile interface
+### Public portfolio
+- Single-page homepage with Hero, About, Skills, Projects, Certificates, Journey, and Contact sections.
+- Navbar links to page sections and a footer.
+- Public section content is currently imported from `src/lib/data.ts` (static local data).
+- The Contact section currently displays a `mailto:` link; it does not submit to the backend contact endpoint.
 
-Note: The Admin interface is currently under development. Its frontend layout does not yet provide complete authentication or database-backed management.
+### Admin
+- `/admin/login`: login form connected to the FastAPI authentication endpoint.
+- `/admin/dashboard`: loads project, certificate, skill, unread-message counts, and the administrator profile from the API.
+- `/admin/projects`: project listing and create/edit/delete interface, including project-image upload and removal.
+- Shared admin sidebar and header layout.
+- The protected layout checks the current session through `GET /auth/me` and verifies `app_metadata.role === "admin"`.
 
-## Project Structure
+The sidebar also contains links for Skills, Certificates, Messages, and Profile, but corresponding working management pages are not present in this code snapshot. Do not treat those screens as implemented yet.
+
+## Repository structure
 
 ```text
 frontend/
 ├── public/
-│   └── images/
-│       ├── profile/
-│       ├── projects/
-│       ├── certificates/
-│       └── tech/
 ├── src/
 │   ├── app/
 │   │   ├── admin/
+│   │   │   ├── login/
+│   │   │   └── (protected)/
+│   │   │       ├── dashboard/
+│   │   │       ├── projects/
+│   │   │       └── layout.tsx
 │   │   ├── globals.css
 │   │   ├── layout.tsx
 │   │   └── page.tsx
 │   ├── components/
-│   │   ├── admin/
+│   │   ├── admin/layout/
 │   │   ├── layout/
 │   │   ├── sections/
-│   │   ├── shared/
-│   │   └── ui/
-│   ├── hooks/
+│   │   └── shared/
 │   ├── lib/
+│   │   ├── api.ts
+│   │   ├── auth.ts
+│   │   └── data.ts
+│   ├── hooks/
 │   └── types/
 ├── docs/
-├── PROJECT_DOCUMENTATION.md
 ├── package.json
 └── README.md
 ```
 
-## Getting Started
+## Requirements
 
-### Requirements
-- Node.js
+- Node.js compatible with the installed Next.js version
 - npm
+- The FastAPI backend and configured Supabase project for API-backed admin features
 
-### Install dependencies
+## Setup
 
 ```bash
+cd frontend
 npm install
 ```
 
-### Start development server
+Create `frontend/.env.local`:
+
+```env
+NEXT_PUBLIC_API_URL=http://localhost:8000/api/v1
+```
+
+This is the only frontend environment variable required by the current code. The API client falls back to this local URL when the variable is absent.
+
+Start the development server:
 
 ```bash
 npm run dev
 ```
 
-Open:
+Open http://localhost:3000.
 
-http://localhost:3000
-
-### Build for production
-
-```bash
-npm run build
-```
-
-### Run ESLint
+Available scripts:
 
 ```bash
 npm run lint
+npm run build
+npm run start
 ```
 
-## Development Guidelines
+Run lint/build at suitable verification points (for example, before a release or after a group of related changes), rather than automatically after every small edit.
 
-- Use TypeScript for application code.
-- Keep components modular and reusable.
-- Separate page sections into individual components.
-- Keep shared data and utilities inside appropriate `lib/` modules.
-- Use responsive layouts.
-- Preserve the existing design system and visual consistency.
-- Avoid exposing private API keys or credentials in frontend code.
-- Use environment variables for public frontend configuration.
+## Authentication and API notes
 
-## Environment Variables
-
-Create `.env.local` for frontend environment configuration when needed.
-
-Example:
-
-```env
-NEXT_PUBLIC_API_URL=http://localhost:8000/api/v1
-NEXT_PUBLIC_SUPABASE_URL=your_supabase_project_url
-NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_publishable_key
-```
-
-Only use `NEXT_PUBLIC_` for values that are safe to expose to the browser. Never put a Supabase service-role key in frontend environment variables.
+- `src/lib/api.ts` centralizes HTTP requests, JSON/FormData handling, Bearer token attachment, and API errors.
+- `src/lib/auth.ts` handles login, refresh, current-user lookup, and logout API calls.
+- The access and refresh tokens are stored in browser `sessionStorage`.
+- This is a client-side session implementation. It is not an HttpOnly-cookie/server-rendered authentication design.
+- Backend endpoints must enforce authorization independently; hiding or guarding frontend pages is not a security boundary.
+- Never put Supabase service-role credentials or other private secrets in frontend environment variables.
 
 ## Documentation
 
-See the `docs/` directory and [PROJECT_DOCUMENTATION.md](PROJECT_DOCUMENTATION.md) for additional technical documentation.
+- [Admin interface](docs/ADMIN.md)
+- [Architecture and data flow](docs/ARCHITECTURE.md)
+- [Components](docs/COMPONENTS.md)
+- [Development workflow](docs/DEVELOPMENT.md)
+- [Styling](docs/STYLING.md)
 
-## Project Status
+## Implementation status
 
-The public portfolio frontend and initial Admin interface structure are under development.
-
-Backend integration, authentication, database operations, and production deployment are planned development phases.
+| Area | Current status |
+|---|---|
+| Public homepage and sections | Implemented; content is static |
+| FastAPI request helper | Implemented |
+| Admin login | Implemented against API |
+| Protected admin layout | Client-side API session check |
+| Dashboard API statistics | Implemented |
+| Project CRUD UI | Implemented; verify each operation in the target environment |
+| Project image upload/delete integration | Implemented for project images |
+| Skills admin page | Not implemented in this snapshot |
+| Certificates admin page | Not implemented in this snapshot |
+| Messages admin page | Not implemented in this snapshot |
+| Profile admin page | Not implemented in this snapshot |
+| Public content from API | Not integrated |
+| Contact form submission | Not integrated; current section uses mailto |
+| Production deployment | Not verified |
 
 ## Deployment
 
-The planned production deployment platform is Fly.io.
-
-Production environment variables and deployment configuration will be managed separately from source code.
+Fly.io is the planned deployment platform, not a verified deployment in this snapshot. Configure the production `NEXT_PUBLIC_API_URL` to the deployed backend URL and configure backend CORS to allow the deployed frontend origin.

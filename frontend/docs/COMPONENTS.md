@@ -1,41 +1,47 @@
+
 # Component Guide
 
-## Layout Components
+## Public layout
 
-Shared application layout components belong in `src/components/layout/`.
+Located in `src/components/layout/`:
 
-Examples:
-- Navbar
-- Footer
+- `navbar.tsx`: sticky section navigation with a responsive mobile menu.
+- `footer.tsx`: portfolio footer.
 
-## Public Section Components
+## Public sections
 
-Public portfolio sections belong in `src/components/sections/`.
+Located in `src/components/sections/`:
 
-Examples:
-- Hero
-- About
-- Skills
-- Projects
-- Certificates
-- Journey
-- Contact
+- `hero.tsx`
+- `about.tsx`
+- `skills.tsx`
+- `projects.tsx`
+- `certificates.tsx`
+- `journey.tsx`
+- `contact.tsx`
 
-## Admin Components
+Most section content is sourced from `src/lib/data.ts`. The Contact section currently renders a mail link rather than a backend submission form.
 
-Administrative interface components belong in `src/components/admin/`.
+## Admin layout
 
-Organize components by feature where practical.
+Located in `src/components/admin/layout/`:
 
-## Shared Components
+- `admin-sidebar.tsx`: admin navigation.
+- `admin-header.tsx`: admin page header.
 
-Reusable components used across multiple sections belong in `src/components/shared/`.
+The actual route pages currently include login, dashboard, and projects. The presence of sidebar destinations for other admin areas does not mean their feature pages are implemented.
+
+## Shared components
+
+Located in `src/components/shared/`:
+
+- `section-heading.tsx`: reusable label, title, and description presentation.
 
 ## Guidelines
 
-- Use clear and consistent component names.
 - Keep components focused on one responsibility.
-- Prefer reusable components for repeated UI patterns.
-- Use TypeScript types for component props.
-- Keep business logic separate from presentation where appropriate.
-- Avoid unnecessary duplication.
+- Use TypeScript for props and API response shapes.
+- Keep API communication in `src/lib` rather than duplicating fetch logic in components.
+- Preserve the existing design tokens and responsive behavior.
+- Do not introduce a new dependency or styling system for a small presentation change.
+- Update this guide when the component tree materially changes.

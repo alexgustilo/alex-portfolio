@@ -1,163 +1,91 @@
-# Development Guide
 
-## Local Environment
+# Backend Development Guide
 
-The backend is developed using Python, FastAPI, Uvicorn, and Supabase.
+## Requirements
 
-Recommended local directory:
+- Python 3
+- pip
+- Supabase project with Auth, database tables, and Storage bucket
+- Node.js is not required to run the backend alone
 
-`~/My_Project_Files/alex-portfolio/backend`
+## Setup
 
-## Activate the Virtual Environment
-
-From the backend directory:
+From the repository root:
 
 ```bash
+cd backend
+python3 -m venv venv
 source venv/bin/activate
-```
-
-## Install Dependencies
-
-```bash
 pip install -r requirements.txt
 ```
 
-## Configure Environment Variables
+Create `backend/.env`:
 
-Copy the example file:
+```env
+APP_NAME="Alex Portfolio API"
+APP_VERSION=1.0.0
+ENVIRONMENT=development
+API_PREFIX=/api/v1
+CORS_ORIGINS=http://localhost:3000
 
-```bash
-cp .env.example .env
+SUPABASE_URL=https://your-project.supabase.co
+SUPABASE_ANON_KEY=your_publishable_key
+SUPABASE_SERVICE_ROLE_KEY=your_server_secret_key
 ```
 
-The backend requires:
+The first two Supabase values are required by the settings model. The service-role key is optional during startup but required for privileged database and Storage operations. Do not commit `.env`.
 
-- `SUPABASE_URL`
-- `SUPABASE_ANON_KEY`
+## Dependencies
 
-Administrator database operations also require:
+Install the exact packages listed in `requirements.txt`. `python-multipart` is required for the `UploadFile` multipart endpoint.
 
-- `SUPABASE_SERVICE_ROLE_KEY`
+## Run
 
-Never commit `.env`.
-
-## Start the Development Server
+From `backend/` with the virtual environment activated:
 
 ```bash
 uvicorn app.main:app --reload
 ```
 
-The local API is available at:
+Local docs:
+- Swagger: http://localhost:8000/docs
+- ReDoc: http://localhost:8000/redoc
+- Health: http://localhost:8000/health
 
-`http://localhost:8000`
+## Database and Storage prerequisites
 
-## Interactive API Documentation
+The code expects Supabase tables named `projects`, `skills`, `certificates`, `contact_messages`, and `profiles`. Their schema must match the Pydantic models and service queries. SQL migrations/schema files are not included in this project snapshot.
 
-Swagger UI:
+Project image upload expects a Storage bucket named `portfolio-projects`. The API generates public URLs; configure bucket read access appropriately. Upload/delete requests themselves require an administrator token.
 
-`http://localhost:8000/docs`
+## Verification workflow
 
-ReDoc:
+1. Confirm `.env` is configured without exposing secrets.
+2. Start the API and check `/health` and `/docs`.
+3. Test public reads for projects, skills, and certificates.
+4. Test admin login and `/auth/me` with a valid admin account.
+5. Test admin CRUD endpoints against a non-production/test record.
+6. Test contact insertion and message listing/status updates.
+7. Test project image upload, URL display, and deletion.
+8. Inspect logs and API responses for failures.
 
-`http://localhost:8000/redoc`
+There is no automated test directory included in this snapshot. Do not describe manual checks as automated test coverage.
 
-## Validate Python Syntax
+## Frontend integration
 
-```bash
-python -m compileall -q app
+Run the frontend separately and set:
+
+```env
+NEXT_PUBLIC_API_URL=http://localhost:8000/api/v1
 ```
 
-No output generally indicates that Python syntax compilation completed successfully.
+Backend CORS must allow the frontend origin. The default configured origin is `http://localhost:3000`.
 
-## Verify Application Imports and Registered Routes
+## Development practices
 
-```bash
-python - <<'PY'
-from app.main import app
-
-print("Application:", app.title)
-
-for path, methods in app.openapi()["paths"].items():
-    print(path, "->", ", ".join(methods.keys()))
-PY
-```
-
-This verifies application imports and OpenAPI route registration. It does not perform database integration tests.
-
-## Health Check
-
-```bash
-curl http://localhost:8000/health
-```
-
-Expected response:
-
-```json
-{
-  "status": "ok",
-  "environment": "development"
-}
-```
-
-## Testing Database Operations
-
-Use Swagger UI to test the API.
-
-Suggested testing sequence:
-
-1. Authenticate using the admin login endpoint.
-2. Authorize Swagger with the returned access token.
-3. Create a temporary project.
-4. Retrieve the project list.
-5. Update the temporary project.
-6. Delete the temporary project.
-7. Repeat for skills and certificates.
-8. Submit a public contact message.
-9. Verify that an administrator can retrieve and manage the message.
-
-Use test records, and avoid deleting actual portfolio data.
-
-## Automated Tests
-
-The project has a `tests/` directory. Automated unit and integration test coverage still needs to be implemented and verified.
-
-## Update Dependencies
-
-After intentionally adding or changing Python packages:
-
-```bash
-pip freeze > requirements.txt
-```
-
-Review the resulting dependency changes before committing.
-
-## Git Guidelines
-
-Check current changes:
-
-```bash
-git status
-```
-
-Review changes:
-
-```bash
-git diff
-```
-
-The project uses descriptive commits and individual file commits when appropriate.
-
-## Development Workflow
-
-1. Review the existing implementation.
-2. Make a focused change.
-3. Validate Python syntax.
-4. Verify imports and route registration.
-5. Test the affected endpoint.
-6. Review Git changes.
-7. Update documentation.
-8. Commit and push the completed work.
-
-## Important
-
-A successful application startup or import check does not prove that all Supabase database operations and authentication workflows are working.
+- Keep request/response validation in `schemas/`.
+- Keep database and Storage calls in `services/`.
+- Keep route handlers focused on HTTP concerns.
+- Protect every privileged operation with `get_current_admin`.
+- Never log or commit credentials, access tokens, or refresh tokens.
+- Run focused checks during implementation and broader verification before release.

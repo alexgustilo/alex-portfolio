@@ -19,6 +19,7 @@ import { apiRequest } from "@/lib/api";
 import { logoutAdmin } from "@/lib/auth";
 
 type AdminProfile = {
+
   id: string;
   full_name: string;
   avatar_url: string | null;

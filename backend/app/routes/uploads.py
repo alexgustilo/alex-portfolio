@@ -1,3 +1,4 @@
+
 from pathlib import Path
 from uuid import uuid4
 
@@ -14,7 +15,9 @@ from fastapi import (
 from app.dependencies.auth import get_current_admin
 from app.schemas.uploads import ImageUploadResponse
 from app.services.upload_service import (
+    delete_certificate_image,
     delete_project_image,
+    upload_certificate_image,
     upload_project_image,
 )
 
@@ -42,7 +45,6 @@ def validate_image(content: bytes, extension: str, content_type: str) -> bool:
     if expected_type != content_type:
         return False
 
-    # Verify the file's actual binary signature.
     if extension in (".jpg", ".jpeg"):
         return content.startswith(b"\xff\xd8\xff")
 
@@ -59,22 +61,17 @@ def validate_image(content: bytes, extension: str, content_type: str) -> bool:
     return False
 
 
-@router.post(
-    "/projects",
-    response_model=ImageUploadResponse,
-    status_code=status.HTTP_201_CREATED,
-)
-async def upload_project_image_route(
-    file: UploadFile = File(...),
-    _admin=Depends(get_current_admin),
-):
-    """Upload a project image. Only verified administrators may upload."""
+async def process_image_upload(
+    file: UploadFile,
+    upload_function,
+    folder: str,
+) -> ImageUploadResponse:
+    """Validate and upload an image to the specified storage folder."""
 
     extension = Path(file.filename or "").suffix.lower()
     content_type = file.content_type or ""
 
     try:
-        # Read one byte beyond the limit to detect oversized files.
         content = await file.read(MAX_FILE_SIZE + 1)
 
         if not content:
@@ -101,11 +98,10 @@ async def upload_project_image_route(
                 detail="The file type or image content is invalid.",
             )
 
-        # Generate a unique filename instead of trusting the original name.
-        file_path = f"projects/{uuid4().hex}{extension}"
+        file_path = f"{folder}/{uuid4().hex}{extension}"
 
         try:
-            image_url = upload_project_image(
+            image_url = upload_function(
                 file_content=content,
                 file_path=file_path,
                 content_type=content_type,
@@ -122,8 +118,77 @@ async def upload_project_image_route(
         )
 
     finally:
-        # Release the uploaded file resource.
         await file.close()
+
+
+@router.post(
+    "/projects",
+    response_model=ImageUploadResponse,
+    status_code=status.HTTP_201_CREATED,
+)
+async def upload_project_image_route(
+    file: UploadFile = File(...),
+    _admin=Depends(get_current_admin),
+):
+    """Upload a project image."""
+
+    return await process_image_upload(
+        file=file,
+        upload_function=upload_project_image,
+        folder="projects",
+    )
+
+
+@router.post(
+    "/certificates",
+    response_model=ImageUploadResponse,
+    status_code=status.HTTP_201_CREATED,
+)
+async def upload_certificate_image_route(
+    file: UploadFile = File(...),
+    _admin=Depends(get_current_admin),
+):
+    """Upload a certificate image."""
+
+    return await process_image_upload(
+        file=file,
+        upload_function=upload_certificate_image,
+        folder="certificates",
+    )
+
+
+@router.delete(
+    "/certificates/{file_path:path}",
+    status_code=status.HTTP_204_NO_CONTENT,
+)
+def delete_certificate_image_route(
+    file_path: str,
+    _admin=Depends(get_current_admin),
+):
+    """Delete an image stored under the certificates folder."""
+
+    parts = file_path.split("/")
+
+    if (
+        len(parts) != 2
+        or parts[0] != "certificates"
+        or not parts[1]
+        or parts[1] in (".", "..")
+    ):
+        raise HTTPException(
+            status_code=400,
+            detail="Invalid certificate image path.",
+        )
+
+    try:
+        delete_certificate_image(file_path)
+    except Exception as exc:
+        raise HTTPException(
+            status_code=502,
+            detail="Unable to delete the certificate image.",
+        ) from exc
+
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 
 @router.delete(
@@ -136,7 +201,6 @@ def delete_project_image_route(
 ):
     """Delete an image stored under the projects folder."""
 
-    # Prevent deletion outside the projects folder.
     parts = file_path.split("/")
 
     if (

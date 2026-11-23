@@ -1,8 +1,12 @@
+
 from app.core.supabase import get_admin_supabase
 
 
-# Use the existing Supabase Storage bucket.
+# Existing project image bucket.
 PROJECT_BUCKET = "portfolio-projects"
+
+# Separate bucket for certificate images.
+CERTIFICATE_BUCKET = "portfolio-certificates"
 
 
 def upload_project_image(
@@ -10,13 +14,10 @@ def upload_project_image(
     file_path: str,
     content_type: str,
 ) -> str:
-    """
-    Upload an image to Supabase Storage and return its public URL.
-    """
+    """Upload a project image and return its public URL."""
 
     storage = get_admin_supabase().storage.from_(PROJECT_BUCKET)
 
-    # Upload a new uniquely named image.
     storage.upload(
         path=file_path,
         file=file_content,
@@ -27,15 +28,40 @@ def upload_project_image(
         },
     )
 
-    # Generate the public URL for the uploaded image.
     return storage.get_public_url(file_path)
 
 
 def delete_project_image(file_path: str) -> None:
-    """
-    Remove an uploaded project image from Supabase Storage.
-    """
+    """Delete an uploaded project image."""
 
     storage = get_admin_supabase().storage.from_(PROJECT_BUCKET)
+    storage.remove([file_path])
 
+
+def upload_certificate_image(
+    file_content: bytes,
+    file_path: str,
+    content_type: str,
+) -> str:
+    """Upload a certificate image and return its public URL."""
+
+    storage = get_admin_supabase().storage.from_(CERTIFICATE_BUCKET)
+
+    storage.upload(
+        path=file_path,
+        file=file_content,
+        file_options={
+            "content-type": content_type,
+            "cache-control": "3600",
+            "upsert": "false",
+        },
+    )
+
+    return storage.get_public_url(file_path)
+
+
+def delete_certificate_image(file_path: str) -> None:
+    """Delete an uploaded certificate image."""
+
+    storage = get_admin_supabase().storage.from_(CERTIFICATE_BUCKET)
     storage.remove([file_path])

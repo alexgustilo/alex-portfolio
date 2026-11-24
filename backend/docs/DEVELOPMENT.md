@@ -56,7 +56,7 @@ Local docs:
 
 The code expects Supabase tables named `projects`, `skills`, `certificates`, `contact_messages`, and `profiles`. Their schema must match the Pydantic models and service queries. SQL migrations/schema files are not included in this project snapshot.
 
-Project image upload expects a Storage bucket named `portfolio-projects`. The API generates public URLs; configure bucket read access appropriately. Upload/delete requests themselves require an administrator token.
+Project image upload expects a Storage bucket named `portfolio-projects`. Certificate image upload expects a separate bucket named `portfolio-certificates`. The API generates public URLs; configure bucket read access appropriately. Upload/delete requests themselves require an administrator token. Profile avatar upload is not currently implemented.
 
 ## Verification workflow
 
@@ -67,7 +67,8 @@ Project image upload expects a Storage bucket named `portfolio-projects`. The AP
 5. Test admin CRUD endpoints against a non-production/test record.
 6. Test contact insertion and message listing/status updates.
 7. Test project image upload, URL display, and deletion.
-8. Inspect logs and API responses for failures.
+8. Test certificate image upload, URL display, replacement, and deletion.
+9. Inspect logs and API responses for failures.
 
 There is no automated test directory included in this snapshot. Do not describe manual checks as automated test coverage.
 

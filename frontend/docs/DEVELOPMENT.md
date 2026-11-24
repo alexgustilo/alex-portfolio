@@ -52,6 +52,8 @@ Run lint/build during planned verification (for example, after completing a feat
 - `src/lib/api.ts` is the shared request helper.
 - `src/lib/auth.ts` provides login, refresh, current-admin, and logout helpers.
 - Admin API requests attach the access token from `sessionStorage`.
+- Admin management pages currently cover Projects, Skills, and Certificates. Profile supports displaying account information and updating the full name.
+- Certificate image operations use the `/uploads/certificates` endpoints. Profile avatar upload is not yet available.
 - FormData requests do not set `Content-Type` manually, allowing the browser to add the multipart boundary.
 - The current public portfolio content remains local/static in `src/lib/data.ts`.
 

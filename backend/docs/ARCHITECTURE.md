@@ -55,7 +55,9 @@ The code expects these tables and their columns to exist in the Supabase databas
 
 ## Storage service
 
-Project images are stored in the `portfolio-projects` Supabase Storage bucket. `routes/uploads.py` validates uploads and restricts deletion to the `projects/` folder. `services/upload_service.py` uses the privileged Supabase client to upload and remove objects.
+Project images are stored in the `portfolio-projects` bucket, and certificate images are stored in the `portfolio-certificates` bucket. `routes/uploads.py` validates uploads and restricts deletion to the corresponding `projects/` or `certificates/` folder. `services/upload_service.py` uses the privileged Supabase client to upload and remove objects.
+
+Profile avatar upload is not currently implemented. The profile API only handles profile data, including an optional `avatar_url` field.
 
 The API returns a public URL for display. The bucket's public-read configuration must be set appropriately in Supabase for unauthenticated image display. Upload and deletion remain protected by FastAPI admin authorization.
 

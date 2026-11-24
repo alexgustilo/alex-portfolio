@@ -21,8 +21,11 @@ The application uses the Next.js App Router.
 - `/admin/login`: administrator login.
 - `/admin/dashboard`: protected dashboard.
 - `/admin/projects`: protected project management.
+- `/admin/skills`: protected skills management.
+- `/admin/certificates`: protected certificate management.
+- `/admin/profile`: protected administrator profile.
 
-The admin sidebar also links to skills, certificates, messages, and profile, but their page implementations are absent from this snapshot.
+The sidebar also includes Messages, but its management page is deferred and is not currently implemented.
 
 ## Data flow
 
@@ -44,9 +47,9 @@ The frontend sends Bearer access tokens for authenticated requests. FastAPI veri
 
 ### Image upload
 
-`Project form → multipart request → FastAPI upload route → Supabase Storage`
+`Project or Certificate form → multipart request → FastAPI upload route → Supabase Storage`
 
-The upload route uses the `portfolio-projects` bucket and returns a public image URL plus a storage path.
+Project images use `portfolio-projects`; certificate images use `portfolio-certificates`. The API returns a public image URL and a storage path. Profile avatar upload is not implemented.
 
 ## Session handling
 

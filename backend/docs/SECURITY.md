@@ -12,7 +12,7 @@
 
 Administrator authorization is applied at the API route/dependency layer. The frontend's protected layout is only a user-interface guard and must never replace backend authorization.
 
-Current admin-protected operations include project, skill, certificate, message, profile, and project-image management.
+Current admin-protected operations include project, skill, certificate, message, profile, project-image, and certificate-image management. The Messages management UI is deferred on the frontend.
 
 ## Secret management
 
@@ -43,6 +43,12 @@ The upload route:
 - Restricts deletion to a single filename inside `projects/`.
 
 The API returns a public image URL. Public read access to the bucket means anyone with the URL may be able to view the image; do not upload private or sensitive images. Upload and deletion are still authorized by FastAPI.
+
+## Certificate image upload controls
+
+Certificate image uploads use the same validation approach as project images: administrator authorization, JPG/JPEG, PNG, and WebP format checks, MIME and binary-signature validation, and a 5 MiB size limit. Files are stored under `certificates/` in the `portfolio-certificates` bucket. Deletion is restricted to that folder.
+
+Profile avatar upload is not currently implemented.
 
 ## Frontend session limitation
 

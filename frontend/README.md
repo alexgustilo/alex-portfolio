@@ -133,10 +133,10 @@ Run lint/build at suitable verification points (for example, before a release or
 | Dashboard API statistics | Implemented |
 | Project CRUD UI | Implemented; verify each operation in the target environment |
 | Project image upload/delete integration | Implemented for project images |
-| Skills admin page | Not implemented in this snapshot |
-| Certificates admin page | Not implemented in this snapshot |
-| Messages admin page | Not implemented in this snapshot |
-| Profile admin page | Not implemented in this snapshot |
+| Skills admin page | Implemented; CRUD interface available |
+| Certificates admin page | Implemented; CRUD and certificate image upload/delete |
+| Messages admin page | Deferred; no management page currently implemented |
+| Profile admin page | Implemented; profile display and name update; avatar upload pending |
 | Public content from API | Not integrated |
 | Contact form submission | Not integrated; current section uses mailto |
 | Production deployment | Not verified |

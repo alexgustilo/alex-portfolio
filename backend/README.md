@@ -13,7 +13,7 @@ FastAPI REST API for the Alex Portfolio application. It handles administrator au
 | Pydantic / Pydantic Settings | Validation and configuration |
 | Supabase Auth | Administrator authentication |
 | Supabase PostgreSQL | Application data |
-| Supabase Storage | Project image files |
+| Supabase Storage | Project and certificate image files |
 | `python-multipart` | Multipart file upload parsing |
 
 See `requirements.txt` for the installed dependency list.
@@ -30,7 +30,8 @@ See `requirements.txt` for the installed dependency list.
 - Create, read, update, and delete projects, skills, and certificates.
 - Read, update status, and delete contact messages.
 - Read and update the administrator profile.
-- Upload and delete project images in Supabase Storage.
+- Upload and delete project images in the `portfolio-projects` bucket.
+- Upload and delete certificate images in the `portfolio-certificates` bucket.
 
 Contact submissions are stored in the database. No SMTP/email notification service is implemented.
 
@@ -140,7 +141,9 @@ Local endpoints:
 | Admin CRUD routes | Implemented | Exercise each operation against the target database |
 | Contact message insert | Implemented | No email notification |
 | Message and profile routes | Implemented | Require admin role and database schema |
-| Project image upload/delete | Implemented | Requires Storage bucket and service key |
+| Project image upload/delete | Implemented | Requires `portfolio-projects` bucket and service key |
+| Certificate image upload/delete | Implemented | Requires `portfolio-certificates` bucket and service key |
+| Profile avatar upload | Not implemented | No avatar upload route or Storage service exists |
 | Automated test suite | Not included in this snapshot | Not verified |
 | Production deployment | Not verified | Not deployed by this snapshot |
 

@@ -1,16 +1,15 @@
-
 # Component Guide
 
 ## Public layout
 
-Located in `src/components/layout/`:
+Located in `src/components/public/layout/`:
 
-- `navbar.tsx`: sticky section navigation with a responsive mobile menu.
+- `navbar.tsx`: public portfolio navigation and responsive mobile menu.
 - `footer.tsx`: portfolio footer.
 
 ## Public sections
 
-Located in `src/components/sections/`:
+Located in `src/components/public/sections/`:
 
 - `hero.tsx`
 - `about.tsx`
@@ -20,16 +19,41 @@ Located in `src/components/sections/`:
 - `journey.tsx`
 - `contact.tsx`
 
-Most section content is sourced from `src/lib/data.ts`. The Contact section currently renders a mail link rather than a backend submission form.
+Most public section content is sourced from `src/lib/data.ts`.
+
+The Contact section currently renders a mail link rather than a backend contact submission form.
 
 ## Admin layout
 
 Located in `src/components/admin/layout/`:
 
-- `admin-sidebar.tsx`: admin navigation.
-- `admin-header.tsx`: admin page header.
+- `admin-sidebar.tsx`: administrator navigation.
+- `admin-header.tsx`: administrator header, profile information, and avatar display.
 
-The admin route pages include login, dashboard, projects, skills, certificates, and profile. The Messages sidebar destination remains deferred and does not currently have a management page.
+The Admin layout is shared by the protected management routes.
+
+## Dashboard feature
+
+Dashboard-specific components are located in `src/features/dashboard/components/`:
+
+- `dashboard-header.tsx`: Dashboard heading and administrator greeting.
+- `dashboard-stat-card.tsx`: reusable statistics card.
+- `dashboard-overview.tsx`: Quick Overview and Getting Started sections.
+
+Dashboard data and API handling are separated from the presentation components:
+
+- `src/features/dashboard/services/dashboard-service.ts`
+- `src/features/dashboard/types/dashboard.ts`
+
+The route page composes these components rather than containing all Dashboard markup and API logic.
+
+## Other Admin pages
+
+Projects, Skills, Certificates, and Profile currently remain in their existing App Router page files.
+
+Their feature-based refactoring is planned. Do not assume these pages have already been moved into `src/features/`.
+
+The Messages management interface remains deferred. Do not modify its existing folders or behavior as part of unrelated feature refactoring.
 
 ## Shared components
 
@@ -40,8 +64,10 @@ Located in `src/components/shared/`:
 ## Guidelines
 
 - Keep components focused on one responsibility.
-- Use TypeScript for props and API response shapes.
-- Keep API communication in `src/lib` rather than duplicating fetch logic in components.
-- Preserve the existing design tokens and responsive behavior.
-- Do not introduce a new dependency or styling system for a small presentation change.
-- Update this guide when the component tree materially changes.
+- Keep feature-specific components, services, and types together under `src/features/<feature>/`.
+- Keep globally shared components under `src/components/`.
+- Keep shared API and authentication infrastructure in `src/lib/`.
+- Use TypeScript for component props and API response shapes.
+- Preserve existing API behavior, validation, and responsive design when refactoring.
+- Avoid introducing dependencies for small presentation changes.
+- Update this guide when the component structure materially changes.

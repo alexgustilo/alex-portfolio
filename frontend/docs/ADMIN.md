@@ -8,10 +8,10 @@
 | `/admin/login` | Login form calling `POST /auth/login` |
 | `/admin/dashboard` | Dashboard statistics and profile name loaded from the API |
 | `/admin/projects` | Project list and create/edit/delete interface with image upload |
-| `/admin/skills` | Sidebar destination only; page not present in this snapshot |
-| `/admin/certificates` | Sidebar destination only; page not present in this snapshot |
-| `/admin/messages` | Sidebar destination only; page not present in this snapshot |
-| `/admin/profile` | Sidebar destination only; page not present in this snapshot |
+| `/admin/skills` | Skills listing and create, update, and delete interface |
+| `/admin/certificates` | Certificate listing, CRUD, and image upload/delete interface |
+| `/admin/messages` | Deferred; management page is not currently implemented |
+| `/admin/profile` | Administrator profile display and full-name update; avatar upload pending |
 
 The protected route group is `(protected)`. Its URL paths do not include the group name.
 
@@ -59,7 +59,7 @@ Upload/delete endpoints are administrator-only. Storage bucket configuration mus
 - FastAPI must validate the Supabase access token and check the server-controlled `app_metadata.role` for every protected operation.
 - Tokens currently live in `sessionStorage`, which is accessible to JavaScript running on the page. A production-hardening task should evaluate an HttpOnly, Secure, SameSite cookie/session architecture.
 - Do not expose `SUPABASE_SERVICE_ROLE_KEY` to the frontend.
-- The sidebar links for the not-yet-created pages should not be interpreted as evidence that their CRUD interfaces exist.
+- The Messages sidebar destination does not mean that a Messages management interface is implemented. Skills and Certificates have their own management pages. Profile currently supports profile display and name updates, but not avatar uploads.
 
 ## Verification status
 

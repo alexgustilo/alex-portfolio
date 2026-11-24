@@ -185,7 +185,9 @@ Both routes require Admin access.
 | Method | Path | Description |
 |---|---|---|
 | POST | `/projects` | Upload a project image |
+| POST | `/certificates` | Upload a certificate image |
 | DELETE | `/{file_path}` | Delete a project image by Storage path |
+| DELETE | `/certificates/{file_path}` | Delete a certificate image by Storage path |
 
 Upload uses `multipart/form-data` with a single file field named `file`.
 
@@ -194,7 +196,7 @@ Accepted formats:
 - `.png` with `image/png`
 - `.webp` with `image/webp`
 
-The backend checks the extension, declared MIME type, and binary image signature. Maximum accepted size is 5 MiB (5 × 1024 × 1024 bytes). The backend creates a unique path under `projects/` in the `portfolio-projects` bucket.
+The backend checks the extension, declared MIME type, and binary image signature. Maximum accepted size is 5 MiB (5 × 1024 × 1024 bytes). The backend creates a unique path under `projects/` in the `portfolio-projects` bucket for project uploads, and under `certificates/` in the `portfolio-certificates` bucket for certificate uploads.
 
 Successful upload response:
 
@@ -209,7 +211,7 @@ Use the returned `image_url` in the project record and retain `path` if the file
 
 `DELETE /api/v1/uploads/projects/example.webp`
 
-The delete route only accepts a path consisting of `projects/<filename>`; it cannot delete objects outside that folder.
+The project delete route only accepts a path consisting of `projects/<filename>`. The certificate delete route only accepts a path consisting of `certificates/<filename>`. Neither route can delete objects outside its designated folder. There is currently no avatar upload or delete endpoint.
 
 ## Common response codes
 

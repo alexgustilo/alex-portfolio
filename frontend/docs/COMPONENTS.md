@@ -29,7 +29,7 @@ Located in `src/components/admin/layout/`:
 - `admin-sidebar.tsx`: admin navigation.
 - `admin-header.tsx`: admin page header.
 
-The actual route pages currently include login, dashboard, and projects. The presence of sidebar destinations for other admin areas does not mean their feature pages are implemented.
+The admin route pages include login, dashboard, projects, skills, certificates, and profile. The Messages sidebar destination remains deferred and does not currently have a management page.
 
 ## Shared components
 

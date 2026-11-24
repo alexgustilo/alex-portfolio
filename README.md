@@ -42,15 +42,18 @@ The portfolio uses a clean, minimalist, and professional design with purple and 
 - Development journey
 - Contact section
 
+Public portfolio content currently uses local/static data. The Contact section currently provides a mail link rather than a backend contact form.
+
 ### Admin Interface
-- Admin dashboard
+- Administrator login and protected layout
+- Dashboard with portfolio statistics
 - Project management
 - Skills management
 - Certificate management
-- Contact message management
-- Profile management
+- Administrator profile management
+- Profile avatar upload and removal
 
-**Note:** Admin authentication, backend integration, and complete database operations are still under development. The current Admin interface is not yet production-secure.
+The Dashboard displays an unread-message count through the existing API endpoint. The Messages management interface remains deferred.
 
 ## Project Structure
 
@@ -59,6 +62,12 @@ alex-portfolio/
 ├── README.md
 ├── frontend/
 │   ├── src/
+│   │   ├── app/
+│   │   ├── components/
+│   │   ├── features/
+│   │   ├── hooks/
+│   │   ├── lib/
+│   │   └── types/
 │   ├── docs/
 │   ├── public/
 │   └── README.md
@@ -92,7 +101,7 @@ npm install
 npm run dev
 ```
 
-Open http://localhost:3000 in your browser.
+Open `http://localhost:3000` in your browser.
 
 See the [Frontend README](frontend/README.md) for more details.
 
@@ -149,14 +158,18 @@ Never commit actual credentials, passwords, or secret keys to the repository.
 
 - [x] Frontend project setup
 - [x] Public portfolio component structure
+- [x] Public and Admin route organization
 - [x] Initial Admin interface
 - [x] Supabase project and database table setup
-- [x] Backend project structure
-- [x] Initial backend configuration
-- [ ] Complete Supabase authentication
-- [ ] Admin authorization
-- [ ] Backend API implementation
-- [ ] Frontend and backend integration
+- [x] Backend project structure and initial configuration
+- [x] Supabase authentication integration
+- [x] Admin authorization checks
+- [x] Backend API implementation and frontend integration
+- [x] Project, Skills, and Certificate management interfaces
+- [x] Profile management and avatar upload integration
+- [x] Initial feature-based Dashboard refactoring
+- [ ] Feature-based refactoring for remaining Admin features
+- [ ] Backend structural refactoring
 - [ ] Contact form email integration
 - [ ] Production security review
 - [ ] Deployment

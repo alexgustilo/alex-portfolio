@@ -8,6 +8,9 @@ PROJECT_BUCKET = "portfolio-projects"
 # Separate bucket for certificate images.
 CERTIFICATE_BUCKET = "portfolio-certificates"
 
+# Dedicated bucket for admin profile avatars.
+AVATAR_BUCKET = "portfolio-avatars"
+
 
 def upload_project_image(
     file_content: bytes,
@@ -64,4 +67,33 @@ def delete_certificate_image(file_path: str) -> None:
     """Delete an uploaded certificate image."""
 
     storage = get_admin_supabase().storage.from_(CERTIFICATE_BUCKET)
+    storage.remove([file_path])
+
+
+def upload_avatar_image(
+    file_content: bytes,
+    file_path: str,
+    content_type: str,
+) -> str:
+    """Upload an admin avatar and return its public URL."""
+
+    storage = get_admin_supabase().storage.from_(AVATAR_BUCKET)
+
+    storage.upload(
+        path=file_path,
+        file=file_content,
+        file_options={
+            "content-type": content_type,
+            "cache-control": "3600",
+            "upsert": "false",
+        },
+    )
+
+    return storage.get_public_url(file_path)
+
+
+def delete_avatar_image(file_path: str) -> None:
+    """Delete an uploaded admin avatar."""
+
+    storage = get_admin_supabase().storage.from_(AVATAR_BUCKET)
     storage.remove([file_path])

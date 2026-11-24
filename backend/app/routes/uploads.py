@@ -15,8 +15,10 @@ from fastapi import (
 from app.dependencies.auth import get_current_admin
 from app.schemas.uploads import ImageUploadResponse
 from app.services.upload_service import (
+    delete_avatar_image,
     delete_certificate_image,
     delete_project_image,
+    upload_avatar_image,
     upload_certificate_image,
     upload_project_image,
 )
@@ -157,6 +159,24 @@ async def upload_certificate_image_route(
     )
 
 
+@router.post(
+    "/avatars",
+    response_model=ImageUploadResponse,
+    status_code=status.HTTP_201_CREATED,
+)
+async def upload_avatar_image_route(
+    file: UploadFile = File(...),
+    _admin=Depends(get_current_admin),
+):
+    """Upload an admin profile avatar."""
+
+    return await process_image_upload(
+        file=file,
+        upload_function=upload_avatar_image,
+        folder="avatars",
+    )
+
+
 @router.delete(
     "/certificates/{file_path:path}",
     status_code=status.HTTP_204_NO_CONTENT,
@@ -186,6 +206,40 @@ def delete_certificate_image_route(
         raise HTTPException(
             status_code=502,
             detail="Unable to delete the certificate image.",
+        ) from exc
+
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
+
+
+@router.delete(
+    "/avatars/{file_path:path}",
+    status_code=status.HTTP_204_NO_CONTENT,
+)
+def delete_avatar_image_route(
+    file_path: str,
+    _admin=Depends(get_current_admin),
+):
+    """Delete an image stored under the avatars folder."""
+
+    parts = file_path.split("/")
+
+    if (
+        len(parts) != 2
+        or parts[0] != "avatars"
+        or not parts[1]
+        or parts[1] in (".", "..")
+    ):
+        raise HTTPException(
+            status_code=400,
+            detail="Invalid avatar image path.",
+        )
+
+    try:
+        delete_avatar_image(file_path)
+    except Exception as exc:
+        raise HTTPException(
+            status_code=502,
+            detail="Unable to delete the avatar image.",
         ) from exc
 
     return Response(status_code=status.HTTP_204_NO_CONTENT)

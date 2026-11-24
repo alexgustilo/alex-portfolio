@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useEffect, useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 import {
   UserRound,
   Mail,
@@ -12,6 +12,8 @@ import {
   LogOut,
   Camera,
   LoaderCircle,
+  Trash2,
+  Upload,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 
@@ -19,7 +21,6 @@ import { apiRequest } from "@/lib/api";
 import { logoutAdmin } from "@/lib/auth";
 
 type AdminProfile = {
-
   id: string;
   full_name: string;
   avatar_url: string | null;
@@ -35,19 +36,86 @@ type AdminAccount = {
   user_metadata?: Record<string, unknown>;
 };
 
+type ImageUploadResponse = {
+  image_url: string;
+  path: string;
+};
+
+const MAX_AVATAR_SIZE = 5 * 1024 * 1024;
+
+const ALLOWED_AVATAR_TYPES = [
+  "image/jpeg",
+  "image/png",
+  "image/webp",
+];
+
+// Extract the Storage object path from an avatar public URL.
+function getAvatarStoragePath(imageUrl: string | null): string | null {
+  if (!imageUrl) return null;
+
+  const marker =
+    "/storage/v1/object/public/portfolio-avatars/";
+
+  const markerIndex = imageUrl.indexOf(marker);
+
+  if (markerIndex === -1) return null;
+
+  const encodedPath = imageUrl
+    .slice(markerIndex + marker.length)
+    .split("?")[0];
+
+  try {
+    return decodeURIComponent(encodedPath);
+  } catch {
+    return encodedPath;
+  }
+}
+
+// Encode each Storage path segment for the delete endpoint.
+function encodeStoragePath(path: string): string {
+  return path
+    .split("/")
+    .map((segment) => encodeURIComponent(segment))
+    .join("/");
+}
+
+// Notify the Admin Header whenever profile information changes.
+function notifyAdminProfileUpdated(profile: AdminProfile) {
+  window.dispatchEvent(
+    new CustomEvent("admin-profile-updated", {
+      detail: profile,
+    }),
+  );
+}
+
 export default function ProfilePage() {
   const router = useRouter();
+  const avatarInputRef = useRef<HTMLInputElement>(null);
 
   const [profile, setProfile] = useState<AdminProfile | null>(null);
   const [account, setAccount] = useState<AdminAccount | null>(null);
 
   const [fullName, setFullName] = useState("");
+  const [selectedAvatar, setSelectedAvatar] = useState<File | null>(null);
+  const [avatarPreview, setAvatarPreview] = useState("");
+
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
+  const [removingAvatar, setRemovingAvatar] = useState(false);
   const [loggingOut, setLoggingOut] = useState(false);
 
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
+
+  // Clean up temporary preview URLs when the preview changes or the page unmounts.
+  useEffect(() => {
+    return () => {
+      if (avatarPreview) {
+        URL.revokeObjectURL(avatarPreview);
+      }
+    };
+  }, [avatarPreview]);
 
   useEffect(() => {
     let cancelled = false;
@@ -86,6 +154,180 @@ export default function ProfilePage() {
     };
   }, []);
 
+  function clearAvatarSelection() {
+    setSelectedAvatar(null);
+    setAvatarPreview("");
+
+    if (avatarInputRef.current) {
+      avatarInputRef.current.value = "";
+    }
+  }
+
+  function handleAvatarSelection(file: File | undefined) {
+    if (!file) return;
+
+    setError("");
+    setNotice("");
+
+    if (!ALLOWED_AVATAR_TYPES.includes(file.type)) {
+      setError("Only JPG, JPEG, PNG, and WebP images are allowed.");
+      return;
+    }
+
+    if (file.size > MAX_AVATAR_SIZE) {
+      setError("Avatar image must not exceed 5 MB.");
+      return;
+    }
+
+    setSelectedAvatar(file);
+    setAvatarPreview(URL.createObjectURL(file));
+  }
+
+  async function deleteAvatarStorageFile(filePath: string) {
+    await apiRequest(
+      `/uploads/avatars/${encodeStoragePath(filePath)}`,
+      { method: "DELETE" },
+    );
+  }
+
+  // Upload the new image, update the profile, then clean up the old image.
+  async function handleUploadAvatar() {
+    if (!selectedAvatar || !profile) return;
+
+    setError("");
+    setNotice("");
+    setUploadingAvatar(true);
+
+    let uploadedImagePath: string | null = null;
+
+    const previousAvatarPath = getAvatarStoragePath(
+      profile.avatar_url,
+    );
+
+    try {
+      const formData = new FormData();
+      formData.append("file", selectedAvatar);
+
+      const uploaded = await apiRequest<ImageUploadResponse>(
+        "/uploads/avatars",
+        {
+          method: "POST",
+          body: formData,
+        },
+      );
+
+      uploadedImagePath = uploaded.path;
+
+      // Save the new avatar URL to the administrator profile.
+      const updatedProfile = await apiRequest<AdminProfile>(
+        "/profile/me",
+        {
+          method: "PATCH",
+          body: JSON.stringify({
+            avatar_url: uploaded.image_url,
+          }),
+        },
+      );
+
+      setProfile(updatedProfile);
+
+      // Immediately update the Admin Header.
+      notifyAdminProfileUpdated(updatedProfile);
+
+      clearAvatarSelection();
+
+      // Delete the previous Storage file only after the profile update succeeds.
+      let cleanupFailed = false;
+
+      if (previousAvatarPath) {
+        try {
+          await deleteAvatarStorageFile(previousAvatarPath);
+        } catch {
+          cleanupFailed = true;
+        }
+      }
+
+      setNotice(
+        cleanupFailed
+          ? "Avatar updated successfully, but the previous image could not be removed from Storage."
+          : "Profile avatar updated successfully.",
+      );
+    } catch (err) {
+      // Remove the newly uploaded file if saving the profile failed.
+      if (uploadedImagePath) {
+        try {
+          await deleteAvatarStorageFile(uploadedImagePath);
+        } catch {
+          // Preserve the original error if cleanup also fails.
+        }
+      }
+
+      setError(
+        err instanceof Error
+          ? err.message
+          : "Unable to upload your profile avatar.",
+      );
+    } finally {
+      setUploadingAvatar(false);
+    }
+  }
+
+  // Clear the profile URL first, then remove the old Storage file.
+  async function handleRemoveAvatar() {
+    if (!profile?.avatar_url) return;
+
+    setError("");
+    setNotice("");
+    setRemovingAvatar(true);
+
+    const previousAvatarPath = getAvatarStoragePath(
+      profile.avatar_url,
+    );
+
+    try {
+      const updatedProfile = await apiRequest<AdminProfile>(
+        "/profile/me",
+        {
+          method: "PATCH",
+          body: JSON.stringify({
+            avatar_url: null,
+          }),
+        },
+      );
+
+      setProfile(updatedProfile);
+
+      // Immediately update the Admin Header.
+      notifyAdminProfileUpdated(updatedProfile);
+
+      clearAvatarSelection();
+
+      let cleanupFailed = false;
+
+      if (previousAvatarPath) {
+        try {
+          await deleteAvatarStorageFile(previousAvatarPath);
+        } catch {
+          cleanupFailed = true;
+        }
+      }
+
+      setNotice(
+        cleanupFailed
+          ? "Avatar removed from your profile, but its Storage file could not be deleted."
+          : "Profile avatar removed successfully.",
+      );
+    } catch (err) {
+      setError(
+        err instanceof Error
+          ? err.message
+          : "Unable to remove your profile avatar.",
+      );
+    } finally {
+      setRemovingAvatar(false);
+    }
+  }
+
   async function handleSaveProfile(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
@@ -118,6 +360,10 @@ export default function ProfilePage() {
       );
 
       setProfile(updatedProfile);
+
+      // Immediately update the Admin Header.
+      notifyAdminProfileUpdated(updatedProfile);
+
       setFullName(updatedProfile.full_name);
       setNotice("Your profile has been updated successfully.");
     } catch (err) {
@@ -162,6 +408,8 @@ export default function ProfilePage() {
     );
   }
 
+  const displayedAvatar = avatarPreview || profile?.avatar_url;
+
   return (
     <div className="space-y-8">
       <section>
@@ -196,12 +444,13 @@ export default function ProfilePage() {
         </div>
       )}
 
+      {/* Profile summary and avatar management */}
       <section className="rounded-2xl border border-gray-100 bg-white p-6 shadow-sm sm:p-8">
-        <div className="flex flex-col gap-5 sm:flex-row sm:items-center">
-          <div className="flex h-20 w-20 shrink-0 items-center justify-center overflow-hidden rounded-full bg-gradient-to-br from-[#6d5ce7] to-[#3978e8] text-2xl font-bold text-white">
-            {profile?.avatar_url ? (
+        <div className="flex flex-col gap-6 sm:flex-row sm:items-center">
+          <div className="flex h-24 w-24 shrink-0 items-center justify-center overflow-hidden rounded-full bg-gradient-to-br from-[#6d5ce7] to-[#3978e8] text-2xl font-bold text-white">
+            {displayedAvatar ? (
               <img
-                src={profile.avatar_url}
+                src={displayedAvatar}
                 alt="Administrator avatar"
                 className="h-full w-full object-cover"
               />
@@ -210,7 +459,7 @@ export default function ProfilePage() {
             )}
           </div>
 
-          <div>
+          <div className="min-w-0 flex-1">
             <h2 className="text-xl font-bold text-gray-900">
               {profile?.full_name || "Administrator"}
             </h2>
@@ -222,6 +471,77 @@ export default function ProfilePage() {
             <div className="mt-3 inline-flex items-center gap-1.5 rounded-full bg-purple-50 px-3 py-1 text-xs font-semibold text-[#6d5ce7]">
               <ShieldCheck size={14} />
               Administrator
+            </div>
+
+            <p className="mt-4 text-xs text-gray-400">
+              JPG, PNG, or WebP. Maximum file size: 5 MB.
+            </p>
+
+            <input
+              ref={avatarInputRef}
+              type="file"
+              accept="image/jpeg,image/png,image/webp"
+              className="hidden"
+              onChange={(event) =>
+                handleAvatarSelection(event.target.files?.[0])
+              }
+            />
+
+            <div className="mt-3 flex flex-wrap gap-2">
+              <button
+                type="button"
+                onClick={() => avatarInputRef.current?.click()}
+                disabled={uploadingAvatar || removingAvatar}
+                className="inline-flex items-center gap-2 rounded-xl border border-gray-200 px-4 py-2.5 text-sm font-semibold text-gray-700 transition hover:bg-gray-50 disabled:opacity-50"
+              >
+                <Camera size={16} />
+                {profile?.avatar_url || selectedAvatar
+                  ? "Choose Photo"
+                  : "Select Photo"}
+              </button>
+
+              {selectedAvatar && (
+                <>
+                  <button
+                    type="button"
+                    onClick={handleUploadAvatar}
+                    disabled={uploadingAvatar || removingAvatar}
+                    className="inline-flex items-center gap-2 rounded-xl bg-[#6d5ce7] px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-[#5b4bd1] disabled:opacity-50"
+                  >
+                    {uploadingAvatar ? (
+                      <RefreshCw size={16} className="animate-spin" />
+                    ) : (
+                      <Upload size={16} />
+                    )}
+                    {uploadingAvatar ? "Uploading..." : "Upload Photo"}
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={clearAvatarSelection}
+                    disabled={uploadingAvatar}
+                    className="rounded-xl px-3 py-2.5 text-sm font-medium text-gray-500 transition hover:bg-gray-100 disabled:opacity-50"
+                  >
+                    Cancel
+                  </button>
+                </>
+              )}
+
+              {!selectedAvatar && profile?.avatar_url && (
+                <button
+                  type="button"
+                  onClick={handleRemoveAvatar}
+                  disabled={uploadingAvatar || removingAvatar}
+                  className="inline-flex items-center gap-2 rounded-xl border border-red-200 px-4 py-2.5 text-sm font-semibold text-red-600 transition hover:bg-red-50 disabled:opacity-50"
+                >
+                  {removingAvatar ? (
+                    <RefreshCw size={16} className="animate-spin" />
+                  ) : (
+                    <Trash2 size={16} />
+                  )}
+                  {removingAvatar ? "Removing..." : "Remove Photo"}
+                </button>
+              )}
             </div>
           </div>
         </div>

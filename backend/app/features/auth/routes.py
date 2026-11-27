@@ -3,8 +3,8 @@ from fastapi.security import HTTPAuthorizationCredentials
 
 from app.core.config import settings
 from app.dependencies.auth import get_current_user, security
-from app.schemas.auth import LoginRequest, RefreshRequest
-from app.services.auth_service import (
+from app.features.auth.schemas import LoginRequest, RefreshRequest
+from app.features.auth.service import (
     login_admin,
     logout_user,
     refresh_admin_session,

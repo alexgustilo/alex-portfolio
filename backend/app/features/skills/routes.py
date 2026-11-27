@@ -3,8 +3,8 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, HTTPException, Response, status
 
 from app.dependencies.auth import get_current_admin
-from app.schemas.skills import SkillCreate, SkillResponse, SkillUpdate
-from app.services.skill_service import (
+from app.features.skills.schemas import SkillCreate, SkillResponse, SkillUpdate
+from app.features.skills.service import (
     create_skill,
     delete_skill,
     get_all_skills,

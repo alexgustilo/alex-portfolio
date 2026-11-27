@@ -1,8 +1,8 @@
 from fastapi import APIRouter, Depends, HTTPException
 
 from app.dependencies.auth import get_current_admin
-from app.schemas.profile import ProfileResponse, ProfileUpdate
-from app.services.profile_service import (
+from app.features.profile.schemas import ProfileResponse, ProfileUpdate
+from app.features.profile.service import (
     get_or_create_profile,
     update_profile,
 )

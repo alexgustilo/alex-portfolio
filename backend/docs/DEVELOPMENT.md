@@ -1,23 +1,29 @@
-
 # Backend Development Guide
 
 ## Requirements
 
 - Python 3
 - pip
-- Supabase project with Auth, database tables, and Storage bucket
-- Node.js is not required to run the backend alone
+- A Supabase project configured for Authentication, PostgreSQL, and Storage
+- Git
+- Node.js is not required to run the backend independently
 
-## Setup
+## Backend setup
 
 From the repository root:
 
 ```bash
 cd backend
+
 python3 -m venv venv
 source venv/bin/activate
+
 pip install -r requirements.txt
 ```
+
+If the virtual environment already exists, activate it instead of creating another one.
+
+## Environment configuration
 
 Create `backend/.env`:
 
@@ -33,60 +39,170 @@ SUPABASE_ANON_KEY=your_publishable_key
 SUPABASE_SERVICE_ROLE_KEY=your_server_secret_key
 ```
 
-The first two Supabase values are required by the settings model. The service-role key is optional during startup but required for privileged database and Storage operations. Do not commit `.env`.
+Use the actual values from your Supabase project.
+
+The Supabase URL and public/publishable key are required by the application settings. The service-role key is optional during startup but required for privileged database and Storage operations.
+
+Never commit `.env` or share its secret values.
 
 ## Dependencies
 
-Install the exact packages listed in `requirements.txt`. `python-multipart` is required for the `UploadFile` multipart endpoint.
+Install the packages declared in `requirements.txt`.
 
-## Run
+The backend uses FastAPI and Pydantic for API handling and validation, together with the configured Supabase Python client.
 
-From `backend/` with the virtual environment activated:
+`python-multipart` is required for multipart image upload endpoints.
+
+Do not install packages individually unless a new dependency is actually needed. Update `requirements.txt` when adding a project dependency.
+
+## Run the backend
+
+From `backend/`, with the virtual environment activated:
 
 ```bash
 uvicorn app.main:app --reload
 ```
 
-Local docs:
-- Swagger: http://localhost:8000/docs
+The development server normally runs at:
+
+`http://localhost:8000`
+
+Available endpoints:
+
+- Swagger UI: http://localhost:8000/docs
 - ReDoc: http://localhost:8000/redoc
-- Health: http://localhost:8000/health
+- Health check: http://localhost:8000/health
 
-## Database and Storage prerequisites
+To bind locally to a specific address and port:
 
-The code expects Supabase tables named `projects`, `skills`, `certificates`, `contact_messages`, and `profiles`. Their schema must match the Pydantic models and service queries. SQL migrations/schema files are not included in this project snapshot.
+```bash
+uvicorn app.main:app --host 127.0.0.1 --port 8000
+```
 
-Project image upload expects a Storage bucket named `portfolio-projects`. Certificate image upload expects a separate bucket named `portfolio-certificates`. The API generates public URLs; configure bucket read access appropriately. Upload/delete requests themselves require an administrator token. Profile avatar upload is not currently implemented.
+## Backend organization
 
-## Verification workflow
+Feature-specific code belongs in `app/features/`.
 
-1. Confirm `.env` is configured without exposing secrets.
-2. Start the API and check `/health` and `/docs`.
-3. Test public reads for projects, skills, and certificates.
-4. Test admin login and `/auth/me` with a valid admin account.
-5. Test admin CRUD endpoints against a non-production/test record.
-6. Test contact insertion and message listing/status updates.
-7. Test project image upload, URL display, and deletion.
-8. Test certificate image upload, URL display, replacement, and deletion.
-9. Inspect logs and API responses for failures.
+Each feature should keep its responsibilities separated:
 
-There is no automated test directory included in this snapshot. Do not describe manual checks as automated test coverage.
+- `routes.py`: HTTP routes and request handling.
+- `schemas.py`: Pydantic request and response models.
+- `service.py`: business logic and data operations.
+
+Shared code belongs in:
+
+- `app/core/`: configuration, Supabase clients, and security utilities.
+- `app/dependencies/`: reusable FastAPI dependencies.
+
+The Messages implementation remains in:
+
+- `app/routes/messages.py`
+- `app/schemas/messages.py`
+- `app/services/message_service.py`
+
+Preserve its existing organization unless a dedicated Messages refactor is explicitly planned.
+
+Register new feature routers in `app/main.py` under the configured API prefix.
+
+## Supabase prerequisites
+
+The backend expects the following database tables:
+
+- `projects`
+- `skills`
+- `certificates`
+- `contact_messages`
+- `profiles`
+
+The database schema must match the models and queries used by the application. Database migrations and SQL schema definitions are not included in this project snapshot.
+
+### Storage buckets
+
+Create and configure these buckets in Supabase Storage:
+
+| Bucket | Purpose |
+|---|---|
+| `portfolio-projects` | Project images |
+| `portfolio-certificates` | Certificate images |
+| `portfolio-avatars` | Administrator profile avatars |
+
+The upload feature creates UUID-based filenames under the corresponding `projects/`, `certificates/`, or `avatars/` folder.
+
+Configure public-read access if the returned image URLs must be displayed without authentication. Upload and deletion operations still require administrator authorization through the backend.
 
 ## Frontend integration
 
-Run the frontend separately and set:
+Run the frontend separately.
+
+Configure the frontend environment:
 
 ```env
 NEXT_PUBLIC_API_URL=http://localhost:8000/api/v1
 ```
 
-Backend CORS must allow the frontend origin. The default configured origin is `http://localhost:3000`.
+The backend CORS configuration must allow the frontend origin. The default development origin is `http://localhost:3000`.
+
+## Verification workflow
+
+Use focused checks while developing:
+
+### 1. Python compilation
+
+From `backend/` with the virtual environment activated:
+
+```bash
+python -m compileall -q app
+```
+
+### 2. Application import
+
+```bash
+python -c "from app.main import app; print('FastAPI import successful')"
+```
+
+### 3. API route registration
+
+```bash
+python -c "from app.main import app; print('\n'.join(sorted(app.openapi()['paths'].keys())))"
+```
+
+### 4. Runtime health check
+
+Start the backend:
+
+```bash
+uvicorn app.main:app --host 127.0.0.1 --port 8000
+```
+
+In another terminal:
+
+```bash
+curl -i http://127.0.0.1:8000/health
+```
+
+### 5. Integration checks
+
+When Supabase credentials and test data are available, verify:
+
+- Public project, skill, and certificate reads.
+- Administrator login and current-user retrieval.
+- Administrator CRUD operations.
+- Contact submission.
+- Administrator profile retrieval and updates.
+- Message listing and status updates.
+- Project, certificate, and avatar image uploads and deletions.
+
+Use test records and test images. Avoid modifying production data during development checks.
+
+There is no automated test suite included in the current backend snapshot. Manual checks must not be described as automated test coverage.
 
 ## Development practices
 
-- Keep request/response validation in `schemas/`.
-- Keep database and Storage calls in `services/`.
+- Preserve existing API paths, methods, schemas, and response contracts unless an API change is intentional.
 - Keep route handlers focused on HTTP concerns.
-- Protect every privileged operation with `get_current_admin`.
-- Never log or commit credentials, access tokens, or refresh tokens.
-- Run focused checks during implementation and broader verification before release.
+- Keep feature-specific operations inside their feature services.
+- Reuse shared authentication dependencies.
+- Protect privileged operations with `get_current_admin`.
+- Keep credentials and tokens out of source code and logs.
+- Avoid unnecessary changes to unrelated features.
+- Update the relevant backend documentation when implementation details change.

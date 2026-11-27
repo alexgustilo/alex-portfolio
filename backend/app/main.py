@@ -2,14 +2,14 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.core.config import settings
-from app.routes.auth import router as auth_router
-from app.routes.certificates import router as certificates_router
-from app.routes.contact import router as contact_router
+from app.features.auth.routes import router as auth_router
+from app.features.certificates.routes import router as certificates_router
+from app.features.contact.routes import router as contact_router
 from app.routes.messages import router as messages_router
-from app.routes.profile import router as profile_router
-from app.routes.projects import router as projects_router
-from app.routes.skills import router as skills_router
-from app.routes.uploads import router as uploads_router
+from app.features.profile.routes import router as profile_router
+from app.features.projects.routes import router as projects_router
+from app.features.skills.routes import router as skills_router
+from app.features.uploads.routes import router as uploads_router
 
 
 app = FastAPI(

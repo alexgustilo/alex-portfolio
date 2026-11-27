@@ -1,4 +1,3 @@
-
 # Backend API Reference
 
 Base URL during local development: `http://localhost:8000`
@@ -32,13 +31,18 @@ Protected endpoints must be authorized by the backend. Frontend navigation restr
 Login body:
 
 ```json
-{ "email": "admin@example.com", "password": "your-password" }
+{
+  "email": "admin@example.com",
+  "password": "your-password"
+}
 ```
 
 Refresh body:
 
 ```json
-{ "refresh_token": "supabase-refresh-token" }
+{
+  "refresh_token": "supabase-refresh-token"
+}
 ```
 
 The login service checks the trusted Supabase `app_metadata.role` before returning the session. The current-user endpoint requires `Authorization: Bearer <access_token>`.
@@ -155,7 +159,9 @@ Optional query parameter: `status=unread|read|replied|archived`.
 Update body:
 
 ```json
-{ "status": "read" }
+{
+  "status": "read"
+}
 ```
 
 ## Profile — `/api/v1/profile`
@@ -180,23 +186,54 @@ Only fields supplied in the PATCH body are updated. `full_name` cannot be null.
 
 ## Uploads — `/api/v1/uploads`
 
-Both routes require Admin access.
+All upload and delete endpoints require Admin access.
 
-| Method | Path | Description |
+### Upload endpoints
+
+| Method | Path | Access | Description |
+|---|---|---|---|
+| POST | `/projects` | Admin | Upload a project image |
+| POST | `/certificates` | Admin | Upload a certificate image |
+| POST | `/avatars` | Admin | Upload an administrator profile avatar |
+
+Uploads use `multipart/form-data` with a single file field named `file`.
+
+### Delete endpoints
+
+| Method | Path | Access | Description |
+|---|---|---|---|
+| DELETE | `/projects/{filename}` | Admin | Delete a project image |
+| DELETE | `/certificates/{filename}` | Admin | Delete a certificate image |
+| DELETE | `/avatars/{filename}` | Admin | Delete an avatar image |
+
+The project deletion route is registered as `DELETE /uploads/{file_path:path}` and expects a path beginning with `projects/`. Certificate and avatar deletion routes explicitly use their respective folder prefixes.
+
+Examples:
+
+```text
+DELETE /api/v1/uploads/projects/example.webp
+DELETE /api/v1/uploads/certificates/example.png
+DELETE /api/v1/uploads/avatars/example.jpg
+```
+
+### Image validation
+
+All three upload types use the same validation rules:
+
+- Accepted extensions: `.jpg`, `.jpeg`, `.png`, `.webp`.
+- Declared MIME type must match the file extension.
+- Actual binary image signature is checked.
+- Maximum accepted file size: 5 MiB (5 × 1024 × 1024 bytes).
+- Empty files and invalid image content are rejected.
+- Filenames are generated using UUID values rather than trusting the uploaded filename.
+
+### Supabase Storage buckets
+
+| Image type | Bucket | Storage folder |
 |---|---|---|
-| POST | `/projects` | Upload a project image |
-| POST | `/certificates` | Upload a certificate image |
-| DELETE | `/{file_path}` | Delete a project image by Storage path |
-| DELETE | `/certificates/{file_path}` | Delete a certificate image by Storage path |
-
-Upload uses `multipart/form-data` with a single file field named `file`.
-
-Accepted formats:
-- `.jpg` / `.jpeg` with `image/jpeg`
-- `.png` with `image/png`
-- `.webp` with `image/webp`
-
-The backend checks the extension, declared MIME type, and binary image signature. Maximum accepted size is 5 MiB (5 × 1024 × 1024 bytes). The backend creates a unique path under `projects/` in the `portfolio-projects` bucket for project uploads, and under `certificates/` in the `portfolio-certificates` bucket for certificate uploads.
+| Project | `portfolio-projects` | `projects/` |
+| Certificate | `portfolio-certificates` | `certificates/` |
+| Avatar | `portfolio-avatars` | `avatars/` |
 
 Successful upload response:
 
@@ -207,11 +244,14 @@ Successful upload response:
 }
 ```
 
-Use the returned `image_url` in the project record and retain `path` if the file may need deletion. Delete example:
+The response includes:
 
-`DELETE /api/v1/uploads/projects/example.webp`
+- `image_url`: public URL used to display the image.
+- `path`: Storage path used when deleting the image.
 
-The project delete route only accepts a path consisting of `projects/<filename>`. The certificate delete route only accepts a path consisting of `certificates/<filename>`. Neither route can delete objects outside its designated folder. There is currently no avatar upload or delete endpoint.
+The upload service uses the privileged Supabase client. Configure public-read access on the respective buckets if images need to be displayed without authentication. Upload and deletion operations remain protected by backend Admin authorization.
+
+Deletion routes restrict the supplied path to a single filename inside the appropriate folder. They do not allow deletion outside their designated folder.
 
 ## Common response codes
 
@@ -220,8 +260,8 @@ The project delete route only accepts a path consisting of `projects/<filename>`
 | 200 | Successful request |
 | 201 | Resource created |
 | 204 | Successful deletion; no response body |
-| 400 | Invalid request or path |
-| 401 | Missing/invalid authentication |
+| 400 | Invalid request or Storage path |
+| 401 | Missing or invalid authentication |
 | 403 | Admin role required |
 | 404 | Resource not found |
 | 413 | Image exceeds size limit |

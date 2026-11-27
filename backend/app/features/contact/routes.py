@@ -1,7 +1,7 @@
 from fastapi import APIRouter, status
 
-from app.schemas.contact import ContactCreate, ContactSubmissionResponse
-from app.services.contact_service import create_contact_message
+from app.features.contact.schemas import ContactCreate, ContactSubmissionResponse
+from app.features.contact.service import create_contact_message
 
 router = APIRouter(prefix="/contact", tags=["Contact"])
 

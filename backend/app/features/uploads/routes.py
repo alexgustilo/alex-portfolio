@@ -13,8 +13,8 @@ from fastapi import (
 )
 
 from app.dependencies.auth import get_current_admin
-from app.schemas.uploads import ImageUploadResponse
-from app.services.upload_service import (
+from app.features.uploads.schemas import ImageUploadResponse
+from app.features.uploads.service import (
     delete_avatar_image,
     delete_certificate_image,
     delete_project_image,

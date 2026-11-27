@@ -1,68 +1,144 @@
-
 # Backend Security Notes
+
+This document describes the security controls implemented or expected by the current backend. It does not certify that the deployed Supabase project or production environment has been audited.
 
 ## Authentication
 
 - Supabase Auth handles administrator sign-in and token refresh.
-- Protected routes validate the access token through Supabase Auth.
-- `get_current_admin` requires `app_metadata.role == "admin"`.
-- The role check uses Supabase `app_metadata`, not user-editable profile fields.
+- Protected routes validate the supplied access token through Supabase Auth.
+- `get_current_user` provides the authenticated user.
+- `get_current_admin` additionally requires `app_metadata.role == "admin"`.
+- The administrator role is read from server-controlled Supabase `app_metadata`, not user-editable profile fields.
+
+The frontend must send a valid access token using the Bearer Authorization header when accessing protected endpoints.
 
 ## Authorization
 
-Administrator authorization is applied at the API route/dependency layer. The frontend's protected layout is only a user-interface guard and must never replace backend authorization.
+Administrator authorization is enforced by backend dependencies, not only by frontend navigation or layout restrictions.
 
-Current admin-protected operations include project, skill, certificate, message, profile, project-image, and certificate-image management. The Messages management UI is deferred on the frontend.
+Current administrator-protected operations include:
+
+- Project creation, updates, and deletion.
+- Skill creation, updates, and deletion.
+- Certificate creation, updates, and deletion.
+- Message management.
+- Administrator profile operations.
+- Project image uploads and deletion.
+- Certificate image uploads and deletion.
+- Administrator avatar uploads and deletion.
+
+Public read endpoints and public contact submissions have different access requirements. Refer to `API.md` for endpoint-level access information.
+
+The frontend's protected routes are a user-interface safeguard and must never replace backend authorization.
 
 ## Secret management
 
-Backend environment variables:
+Backend environment variables include:
 
 - `SUPABASE_URL`
 - `SUPABASE_ANON_KEY`
 - `SUPABASE_SERVICE_ROLE_KEY`
 
-The service-role key grants privileged access and must only be used by the backend. Keep `.env` out of Git and never include the key in frontend variables, browser code, logs, screenshots, or documentation examples.
+The service-role key grants privileged Supabase access and must remain server-side.
 
-`SUPABASE_SERVICE_ROLE_KEY` is optional during settings initialization, but `get_admin_supabase()` returns HTTP 503 when privileged access is attempted without it.
+Security practices:
+
+- Keep `.env` out of Git.
+- Never put the service-role key in `NEXT_PUBLIC_` variables.
+- Never expose credentials in browser code, logs, screenshots, or documentation examples.
+- Do not commit access tokens, refresh tokens, or passwords.
+- Rotate credentials if they are exposed.
+
+`SUPABASE_SERVICE_ROLE_KEY` is optional during settings initialization, but privileged operations through `get_admin_supabase()` require it. Missing privileged configuration results in an HTTP 503 response.
+
+## Supabase clients and database access
+
+The backend uses separate Supabase clients:
+
+- The regular client uses the configured public/publishable key.
+- The privileged client uses the service-role key for server-side operations.
+
+Configure Supabase Row Level Security policies appropriate to the application and its public client.
+
+Verify that public client access cannot modify administrator-managed records or expose private information. Do not assume that using a backend service automatically makes database policies safe.
 
 ## CORS
 
-`CORS_ORIGINS` is a comma-separated allowlist. Set it to the actual frontend origin(s) for each environment. Avoid broad wildcard origins when credentials are enabled.
+`CORS_ORIGINS` is a comma-separated allowlist of permitted frontend origins.
 
-## Project image upload controls
+Set it to the actual origins required by each environment. Avoid broad wildcard origins when credentials are enabled.
+
+## Image upload controls
+
+Project, certificate, and avatar uploads share the same validation process.
 
 The upload route:
+
 - Requires administrator authorization.
 - Accepts only JPG/JPEG, PNG, and WebP extensions.
 - Checks the declared MIME type against the extension.
-- Checks the binary signature for the accepted image formats.
-- Limits input to 5 MiB.
-- Generates a UUID-based filename rather than using the supplied filename.
-- Stores objects under `projects/` in the `portfolio-projects` bucket.
-- Restricts deletion to a single filename inside `projects/`.
+- Checks the binary signature of the uploaded content.
+- Rejects empty files.
+- Limits uploaded content to 5 MiB.
+- Generates UUID-based filenames instead of trusting user-supplied filenames.
+- Closes the uploaded file after processing.
 
-The API returns a public image URL. Public read access to the bucket means anyone with the URL may be able to view the image; do not upload private or sensitive images. Upload and deletion are still authorized by FastAPI.
+### Storage separation
 
-## Certificate image upload controls
+| Image type | Bucket | Folder |
+|---|---|---|
+| Project | `portfolio-projects` | `projects/` |
+| Certificate | `portfolio-certificates` | `certificates/` |
+| Administrator avatar | `portfolio-avatars` | `avatars/` |
 
-Certificate image uploads use the same validation approach as project images: administrator authorization, JPG/JPEG, PNG, and WebP format checks, MIME and binary-signature validation, and a 5 MiB size limit. Files are stored under `certificates/` in the `portfolio-certificates` bucket. Deletion is restricted to that folder.
+The upload services use the privileged Supabase client.
 
-Profile avatar upload is not currently implemented.
+### Deletion restrictions
+
+Deletion routes require administrator authorization and restrict paths to a single filename inside the designated folder.
+
+- Project deletion is restricted to `projects/`.
+- Certificate deletion is restricted to `certificates/`.
+- Avatar deletion is restricted to `avatars/`.
+
+These restrictions prevent the corresponding endpoints from accepting arbitrary paths outside their intended folders.
+
+### Public image access
+
+The upload service returns public image URLs.
+
+If a bucket is configured for public reads, anyone with the URL may be able to view its images. Do not upload private or sensitive images to publicly accessible buckets.
+
+Public image visibility does not make upload or deletion operations public; those operations remain protected by backend authorization.
+
+## Contact and message data
+
+Contact submissions are accepted through the public contact endpoint and stored in the `contact_messages` table.
+
+Message-management endpoints require administrator authorization.
+
+Protect contact and message data through appropriate database policies and access controls. Avoid exposing visitor messages through public endpoints or logging their contents unnecessarily.
 
 ## Frontend session limitation
 
-The current frontend stores access and refresh tokens in `sessionStorage`. This is accessible to JavaScript executing in the page and is less protective than an HttpOnly cookie design. Consider migrating to server-managed HttpOnly, Secure, SameSite cookies before production.
+The current frontend stores access and refresh tokens in `sessionStorage`.
 
-## Data and operational safeguards
+Because `sessionStorage` is accessible to JavaScript running in the page, tokens may be exposed if malicious JavaScript executes in the application.
 
-- Use Supabase Row Level Security policies appropriate to the anon/public client.
-- Verify that public client access cannot modify administrator data.
-- Keep privileged operations on the server and apply least privilege where possible.
-- Avoid returning internal exception details to public clients.
-- Do not expose visitor messages or profile data through public endpoints.
+This is less protective than an HttpOnly cookie-based session design.
+
+Consider migrating to server-managed cookies with appropriate `HttpOnly`, `Secure`, and `SameSite` settings before production. Such a migration requires coordinated frontend and backend changes.
+
+## Operational safeguards
+
 - Use HTTPS in production.
-- Rotate credentials if they are exposed.
-- Back up and protect contact-message data.
+- Apply least-privilege access to Supabase resources.
+- Verify Row Level Security policies.
+- Avoid returning internal exception details to public clients.
+- Do not expose private profile or visitor message data through public endpoints.
+- Protect and back up contact-message data.
+- Monitor failed authentication and privileged operations.
+- Rotate exposed credentials promptly.
+- Keep development and production credentials separate.
 
-These notes describe safeguards visible or required by the current implementation; they do not certify that the Supabase project's policies or deployment configuration have been audited.
+These recommendations describe required safeguards and known implementation characteristics. They do not confirm that every production configuration has been tested.

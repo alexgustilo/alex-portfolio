@@ -3,12 +3,12 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, HTTPException, Response, status
 
 from app.dependencies.auth import get_current_admin
-from app.schemas.certificates import (
+from app.features.certificates.schemas import (
     CertificateCreate,
     CertificateResponse,
     CertificateUpdate,
 )
-from app.services.certificate_service import (
+from app.features.certificates.service import (
     create_certificate,
     delete_certificate,
     get_all_certificates,

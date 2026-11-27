@@ -1,49 +1,146 @@
-
 # Backend Architecture
 
 ## Overview
 
-The backend is a FastAPI application organized into routes, schemas, services, dependencies, and core configuration.
+The backend is a FastAPI application organized around feature-based modules.
+
+Each feature contains its own route handlers, Pydantic schemas, and service functions. Shared infrastructure remains in the `core/` and `dependencies/` packages.
+
+The Messages implementation remains in the original `routes/`, `schemas/`, and `services/` packages.
+
+## Project structure
+
+```text
+backend/
+├── app/
+│   ├── core/
+│   │   ├── config.py
+│   │   ├── security.py
+│   │   └── supabase.py
+│   ├── dependencies/
+│   │   └── auth.py
+│   ├── features/
+│   │   ├── auth/
+│   │   │   ├── routes.py
+│   │   │   ├── schemas.py
+│   │   │   └── service.py
+│   │   ├── certificates/
+│   │   │   ├── routes.py
+│   │   │   ├── schemas.py
+│   │   │   └── service.py
+│   │   ├── contact/
+│   │   │   ├── routes.py
+│   │   │   ├── schemas.py
+│   │   │   └── service.py
+│   │   ├── profile/
+│   │   │   ├── routes.py
+│   │   │   ├── schemas.py
+│   │   │   └── service.py
+│   │   ├── projects/
+│   │   │   ├── routes.py
+│   │   │   ├── schemas.py
+│   │   │   └── service.py
+│   │   ├── skills/
+│   │   │   ├── routes.py
+│   │   │   ├── schemas.py
+│   │   │   └── service.py
+│   │   └── uploads/
+│   │       ├── routes.py
+│   │       ├── schemas.py
+│   │       └── service.py
+│   ├── routes/
+│   │   └── messages.py
+│   ├── schemas/
+│   │   └── messages.py
+│   ├── services/
+│   │   └── message_service.py
+│   └── main.py
+├── docs/
+├── requirements.txt
+└── .env
+```
+
+Each Python package also contains its appropriate `__init__.py` file.
+
+## Feature modules
+
+The `features/` package contains the following modules:
+
+| Feature | Responsibility |
+|---|---|
+| `auth/` | Administrator login, refresh, current-user, and logout endpoints |
+| `profile/` | Administrator profile retrieval and updates |
+| `projects/` | Portfolio project operations |
+| `skills/` | Portfolio skill operations |
+| `certificates/` | Certificate operations |
+| `contact/` | Public contact submissions |
+| `uploads/` | Project, certificate, and avatar image uploads and deletion |
+
+Each feature separates its responsibilities:
+
+- `routes.py`: API endpoints, HTTP handling, and dependencies.
+- `schemas.py`: request validation and response models.
+- `service.py`: feature-specific business operations and Supabase interactions.
+
+## Messages module
+
+Messages remains separated from the migrated feature modules:
+
+- `routes/messages.py`: message API endpoints.
+- `schemas/messages.py`: message request and response schemas.
+- `services/message_service.py`: message data operations.
+
+The Messages module is registered directly by `main.py`. Its existing implementation and API behavior are preserved.
 
 ## Request flow
 
-Typical API request:
+Typical request flow:
 
-`HTTP request → FastAPI route → dependency/auth check → Pydantic schema → service → Supabase → response`
+`HTTP request → main.py router → feature route → authentication dependency (when required) → schema validation → service → Supabase → HTTP response`
 
-- `routes/`: HTTP methods, URL paths, dependency declarations, and response handling.
-- `schemas/`: request validation and response models.
-- `services/`: database and Storage operations.
-- `dependencies/auth.py`: Bearer token extraction, Supabase user validation, and admin dependency.
-- `core/config.py`: environment-backed settings.
-- `core/security.py`: trusted admin-role check.
-- `core/supabase.py`: cached regular and privileged Supabase clients.
-- `main.py`: FastAPI app, CORS middleware, and router registration.
+The exact flow depends on the endpoint. Public endpoints do not require administrator authentication.
 
-## Supabase clients
+## Application entry point
 
-### Regular client
+`main.py` is responsible for:
 
-`get_supabase()` uses the Supabase URL and publishable/anon key. It is used for public reads and public contact submissions, and for validating user access tokens through Supabase Auth.
+- Creating the FastAPI application.
+- Configuring CORS middleware.
+- Registering feature routers.
+- Registering the Messages router.
+- Exposing the root and health endpoints.
 
-### Privileged client
+All application feature routers are registered under the configured API prefix, normally `/api/v1`.
 
-`get_admin_supabase()` uses `SUPABASE_SERVICE_ROLE_KEY`. It is used by protected services for administrator data operations and project-image Storage operations. It raises HTTP 503 when the key is not configured.
+## Shared infrastructure
 
-The privileged key must remain server-side.
+### Core configuration
 
-## Authentication and authorization
+`core/config.py` loads environment-backed application settings, including the application name, version, environment, API prefix, CORS origins, and Supabase configuration.
 
-1. The client sends a Supabase access token in the Bearer Authorization header.
-2. `get_current_user` validates the token with Supabase Auth.
-3. `get_current_admin` additionally checks `app_metadata.role == "admin"`.
-4. Protected routes use the admin dependency before performing privileged operations.
+### Authentication dependencies
 
-The admin role is read from Supabase `app_metadata`, which is server-controlled. Do not trust a role value submitted by a browser.
+`dependencies/auth.py` provides shared authentication dependencies:
 
-## Data services
+- `get_current_user`: validates the Supabase access token.
+- `get_current_admin`: requires the administrator role.
 
-Portfolio tables used by the service layer:
+### Security utilities
+
+`core/security.py` contains shared security-related checks, including trusted administrator-role verification.
+
+### Supabase clients
+
+`core/supabase.py` provides the regular and privileged Supabase clients.
+
+- `get_supabase()` uses the configured public/publishable key.
+- `get_admin_supabase()` uses the server-side service-role key.
+
+The service-role key must never be exposed to frontend code.
+
+## Supabase data
+
+The current service implementation expects these database tables:
 
 - `projects`
 - `skills`
@@ -51,20 +148,26 @@ Portfolio tables used by the service layer:
 - `contact_messages`
 - `profiles`
 
-The code expects these tables and their columns to exist in the Supabase database. The application repository does not include database migrations or SQL schema definitions in this snapshot.
+Database migrations and SQL schema definitions are not included in this project snapshot.
 
-## Storage service
+## Supabase Storage
 
-Project images are stored in the `portfolio-projects` bucket, and certificate images are stored in the `portfolio-certificates` bucket. `routes/uploads.py` validates uploads and restricts deletion to the corresponding `projects/` or `certificates/` folder. `services/upload_service.py` uses the privileged Supabase client to upload and remove objects.
+The upload feature uses three dedicated buckets:
 
-Profile avatar upload is not currently implemented. The profile API only handles profile data, including an optional `avatar_url` field.
+| Image type | Bucket | Folder |
+|---|---|---|
+| Project images | `portfolio-projects` | `projects/` |
+| Certificate images | `portfolio-certificates` | `certificates/` |
+| Administrator avatars | `portfolio-avatars` | `avatars/` |
 
-The API returns a public URL for display. The bucket's public-read configuration must be set appropriately in Supabase for unauthenticated image display. Upload and deletion remain protected by FastAPI admin authorization.
+Uploads and deletions require administrator authorization. The upload routes validate image extensions, MIME types, binary signatures, and file size before using the Storage services.
 
-## Frontend integration boundary
+## Frontend integration
 
-The intended flow is:
+The application follows this integration boundary:
 
-`Next.js frontend → FastAPI → Supabase`
+`Next.js frontend → FastAPI backend → Supabase`
 
-The frontend must not connect using the service-role key. Public portfolio sections currently use static frontend data; the backend's public read endpoints are not yet wired into those sections.
+The frontend communicates with the backend through the configured API base URL. Privileged Supabase operations remain server-side.
+
+Public portfolio sections may use frontend data independently of the backend public-read endpoints. Do not assume every public endpoint is already integrated into the frontend.

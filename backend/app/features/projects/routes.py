@@ -3,8 +3,8 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, HTTPException, Response, status
 
 from app.dependencies.auth import get_current_admin
-from app.schemas.projects import ProjectCreate, ProjectResponse, ProjectUpdate
-from app.services.project_service import (
+from app.features.projects.schemas import ProjectCreate, ProjectResponse, ProjectUpdate
+from app.features.projects.service import (
     create_project,
     delete_project,
     get_all_projects,
